@@ -1,0 +1,20 @@
+{
+    "name": "jhenbert/php-basic",
+    "description": "A grade calculator PHP application for learning Docker and PHP",
+    "type": "project",
+    "require": {
+        "php": "^8.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
+    },
+    "scripts": {
+        "lint": "find . -name '*.php' -not -path './vendor/*' -exec php -l {} \\;",
+        "test": "phpunit"
+    },
+    "config": {
+        "sort-packages": true
+    }
+}

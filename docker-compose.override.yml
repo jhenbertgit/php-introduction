@@ -1,0 +1,16 @@
+# ----------------------------------------------------------------------
+# DEVELOPMENT OVERRIDES
+# Docker Compose merges this with docker-compose.yml automatically.
+# Run `docker compose up` = base + override (dev mode)
+# Run `docker compose -f docker-compose.yml up` = base only (prod mode)
+# ----------------------------------------------------------------------
+services:
+  php-server:
+    volumes:
+      # Dev PHP config (errors ON, opcache OFF, Xdebug ON)
+      - ./usr/config/php.ini-dev:/usr/local/etc/php/php.ini:ro
+      # Live code sync — edit locally, reflected instantly
+      - ./:/var/www/html
+    environment:
+      - XDEBUG_MODE=${XDEBUG_MODE:-debug,develop}
+      - XDEBUG_CLIENT_PORT=${XDEBUG_CLIENT_PORT:-9003}

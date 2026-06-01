@@ -1,0 +1,27 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Listen for Xdebug",
+            "type": "php",
+            "request": "launch",
+            "port": 9003,
+            "xdebugSettings": {
+                "log": true,
+                "log_level": "debug"
+            },
+            "pathMappings": {
+                "/var/www/html": "${workspaceFolder}"
+            }
+        },
+        {
+            "name": "Launch currently open script",
+            "type": "php",
+            "request": "launch",
+            "port": 9003,
+            "program": "${file}",
+            "runtimeExecutable": "docker compose exec -T php-server php",
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}

@@ -1,0 +1,47 @@
+[PHP]
+
+; ----------------------------------------------------------------------
+; DEVELOPMENT CONFIG - errors ON, opcache OFF, Xdebug-friendly
+; ----------------------------------------------------------------------
+
+; Logging - DEVELOPMENT: show errors in browser
+display_errors = On
+display_startup_errors = On
+error_reporting = E_ALL
+log_errors = On
+error_log = /var/log/php_errors.log
+
+; Performance - DEVELOPMENT: disable opcache for instant code changes
+[opcache]
+opcache.enable = 0
+
+; Uploads
+file_uploads = On
+upload_max_filesize = 10M
+post_max_size = 12M
+max_execution_time = 30
+
+; Session
+session.save_handler = files
+session.save_path = /tmp
+
+; Security - DEVELOPMENT: relaxed for easier debugging
+expose_php = On
+allow_url_fopen = On
+allow_url_include = Off
+
+; Locale
+date.timezone = UTC
+
+; ----------------------------------------------------------------------
+; Xdebug 3.x - enabled via docker-compose.override.yml volume mount
+; ----------------------------------------------------------------------
+[xdebug]
+xdebug.mode = debug,develop
+xdebug.start_with_request = trigger
+xdebug.client_host = host.docker.internal
+xdebug.client_port = 9003
+xdebug.discover_client_host = true
+xdebug.idekey = VSCODE
+xdebug.log = /var/log/xdebug.log
+xdebug.log_level = 3
