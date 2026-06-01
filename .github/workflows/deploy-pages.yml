@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'public/docs/php-docs.html'
+      - 'public/docs/index.html'
   workflow_dispatch:
 
 permissions:
