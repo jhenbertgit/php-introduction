@@ -1,6 +1,16 @@
-# PHP Basic - Grade Calculator
+# PHP Basic
 
-A simple PHP 8.4 grade calculator running in Docker with Traefik reverse proxy. Uses PSR-4 autoloading and an OOP architecture.
+PHP 8.4 learning exercises running in Docker with Traefik reverse proxy. PSR-4 autoloading, OOP architecture, multiple hands-on examples.
+
+## Exercises
+
+| Page | Description |
+|------|-------------|
+| `/` (index.php) | ATM Withdrawal — session-based PIN verification, balance tracking, form validation |
+| `/gradeCalculator.index.php` | Grade Calculator — weighted scores, letter grades, remarks via `App\GradeCalculator` class |
+| `/example.php` | Arrays & Objects — `array_all`, `array_combine`, class constructor, `var_dump` |
+
+Switch the active page by editing `public/index.php` (currently includes `atm_withdrawal.php`).
 
 ## Quick Start
 
@@ -42,9 +52,9 @@ No Xdebug, no volume mount, errors off.
 | `docker compose logs -f` | `make logs` | View all logs |
 | `docker compose logs -f php-server` | `make logs-php` | View PHP logs |
 | `docker compose exec php-server bash` | `make shell` | Shell into container |
-| `docker compose exec php-server bash -c "echo 'xdebug.mode = debug,develop' > ... && make restart"` | `make xdebug-on` | Enable Xdebug |
-| `docker compose exec php-server bash -c "echo 'xdebug.mode = off' > ... && make restart"` | `make xdebug-off` | Disable Xdebug |
-| `docker compose exec php-server bash -c "find ... -name '*.php' -exec php -l {} \;"` | `make lint` | Lint PHP files |
+| `make xdebug-on` | `make xdebug-on` | Enable Xdebug |
+| `make xdebug-off` | `make xdebug-off` | Disable Xdebug |
+| `make lint` | `make lint` | Lint PHP files |
 | `docker compose -f docker-compose.yml up -d --build` | `make prod` | Production mode |
 | `docker compose down -v --rmi local` | `make clean` | Remove containers, images, volumes |
 
@@ -68,13 +78,16 @@ No Xdebug, no volume mount, errors off.
 ├── .vscode/launch.json              # VS Code Xdebug configuration
 ├── composer.json                    # PHP project metadata & PSR-4 autoloading
 ├── composer.lock                    # Dependency lockfile
-├── docker-entrypoint.sh              # Container startup script (composer install)
+├── docker-entrypoint.sh             # Container startup script (composer install)
 ├── Dockerfile                       # Builds PHP 8.4 + Apache image
 ├── docker-compose.yml              # Production-safe base configuration
 ├── docker-compose.override.yml      # Dev additions (Xdebug, volume mount)
 ├── Makefile                         # Shortcut commands
 ├── public/
-│   └── index.php                    # Web entry point (Apache DocumentRoot)
+│   ├── index.php                    # Web entry point — includes active exercise
+│   ├── gradeCalculator.index.php    # Grade calculator form (uses App\GradeCalculator)
+│   ├── example.php                  # Array functions & object basics
+│   └── atm_withdrawal.php           # ATM withdrawal with PIN & balance logic
 ├── src/
 │   └── GradeCalculator.php          # Grade calculator logic (App\ namespace)
 └── usr/config/
