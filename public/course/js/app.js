@@ -281,7 +281,17 @@
       <div class="receipt-foot">php ${escapeHtml(result.php || state.php || '8.4')} · ${ms} ms</div>`;
 
     const bodyEl = $('.receipt-body', el);
-    bodyEl.innerHTML = result.stage === 'lint' ? colorize(body) : escapeHtml(body);
+    if (result.stage === 'lint') {
+      bodyEl.innerHTML = colorize(body);
+    } else {
+      // Printed output stays plain; diagnostics (which PHP sends to stderr) are coloured,
+      // so a notice reads as a notice and not as the program's own words.
+      const printed = result.output ? String(result.output.stdout || '').replace(/\s+$/, '') : '';
+      const diagnostics = result.output ? String(result.output.stderr || '').replace(/\s+$/, '') : '';
+      bodyEl.innerHTML = [printed ? escapeHtml(printed) : '', diagnostics ? colorize(diagnostics) : '']
+        .filter(Boolean)
+        .join('\n');
+    }
     return el;
   }
 

@@ -138,7 +138,9 @@ function execute(code, request) {
     if (lint.code !== 0) {
       return { compiled: false, lint, run: null };
     }
-    const run = runPhp([file], dir);
+    // The same diagnostic settings App\SnippetRunner uses, so the harness sees what the
+    // browser will see: printed output on stdout, notices and warnings on stderr.
+    const run = runPhp(['-d', 'display_errors=stderr', '-d', 'error_reporting=E_ALL', '-d', 'log_errors=0', file], dir);
     return { compiled: true, lint, run };
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
@@ -146,6 +148,18 @@ function execute(code, request) {
 }
 
 const strip = (text) => String(text || '').replace(/\r/g, '').split('\n').map((line) => line.replace(/[ \t]+$/, '')).join('\n').replace(/^\n+|\n+$/g, '');
+
+/**
+ * The app shows printed output and diagnostics together, but PHP appends
+ * " in /tmp/.../snippet.php on line N" to notices and warnings, which no lesson can pin
+ * down. Strip that suffix and require the claimed lines to be present.
+ */
+function matchesClaim(claim, result) {
+  const combined = strip(`${result.run.stdout || ''}\n${result.run.stderr || ''}`)
+    .replace(/\s+in \S*snippet\.php(?:\s+on\s+line\s+\d+)?/g, '');
+  const wanted = strip(claim).split('\n').filter((line) => line.trim());
+  return wanted.every((line) => combined.includes(line.trim()));
+}
 
 function evaluateChecks(checks, result) {
   const stdout = strip(result.run && result.run.stdout);
@@ -241,10 +255,8 @@ for (const file of files) {
       return;
     }
     if (block.output) {
-      const want = strip(block.output);
-      const got = strip(result.run.stdout);
-      if (!got.includes(want.split('\n')[0].trim())) {
-        problem(where, `blocks[${i}] claims output ${JSON.stringify(want)} but printed ${JSON.stringify(got.slice(0, 200))}`);
+      if (!matchesClaim(block.output, result)) {
+        problem(where, `blocks[${i}] claims output ${JSON.stringify(strip(block.output).slice(0, 120))} but printed ${JSON.stringify(strip(`${result.run.stdout}\n${result.run.stderr}`).slice(0, 200))}`);
       }
     }
   });
