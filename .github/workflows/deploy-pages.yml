@@ -69,14 +69,16 @@ jobs:
           for page in course docs; do
             test -f "public/$page/index.html" || { echo "missing public/$page/index.html"; exit 1; }
           done
-          for asset in interactive.css interactive.js runner.php; do
+          for asset in interactive.css interactive.js lz-string.js runner.php; do
             test -f "public/docs/$asset" || { echo "missing public/docs/$asset"; exit 1; }
           done
-          for asset in js/app.js js/highlight.js styles.css run.php; do
+          for asset in js/app.js js/highlight.js js/lz-string.js styles.css run.php; do
             test -f "public/course/$asset" || { echo "missing public/course/$asset"; exit 1; }
           done
           grep -q 'js/app.js' public/course/index.html
           grep -q 'interactive.js' public/docs/index.html
+          grep -q 'lz-string.js' public/course/index.html
+          grep -q 'lz-string.js' public/docs/index.html
           echo "both front ends reference their assets"
 
       - name: Stage the site
@@ -123,9 +125,11 @@ jobs:
                 <li><a href="docs/">The guide <span>123 snippets</span></a></li>
               </ul>
               <footer>
-                Run buttons execute PHP, and this copy is static, so they are disabled here:
-                the pages say so when you press one. Clone the project and run
-                <code>docker compose up -d</code> for the full experience.
+                PHP cannot run on GitHub Pages, so this copy is static. Every snippet has an
+                <strong>In playground</strong> button that hands the code to
+                <a href="https://php-play.dev/">php-play.dev</a>, which runs PHP 8.4 in your browser.
+                For the real thing (the project's own interpreter, simulated requests, exercise
+                checks) clone the project and run <code>docker compose up -d</code>.
               </footer>
             </main>
           </body>

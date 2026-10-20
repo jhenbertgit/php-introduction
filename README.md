@@ -48,6 +48,13 @@ bank balance becomes something you can actually execute:
 
 Progress, quiz answers, your code and your request inputs are kept in `localStorage`.
 
+Where our own runner cannot exist — the GitHub Pages copy — every snippet gains an
+**In playground** button instead. It hands the exact code to
+[php-play.dev](https://php-play.dev/), which runs PHP in the browser through WebAssembly.
+That site has no API; the code rides in its URL as an lz-string (`?c=…&v=8.4`), compressed
+by the vendored `js/lz-string.js` (MIT). It runs one file as a script, so it cannot simulate
+a request or autoload `src/` — the local app remains the full experience.
+
 ## Interactive documentation
 
 `public/docs/` holds a PHP 8.4 guide with 123 code blocks. Each block is editable and has a

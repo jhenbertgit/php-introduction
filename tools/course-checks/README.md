@@ -39,7 +39,12 @@ the chapter claims, the quiz marks and explains, the exercise solution passes it
 marks the chapter done, a syntax error is reported as a parse failure, chapters with a
 simulated request run and show the request in the receipt, the workbench request panel is
 seeded, and — after copying the folder to a plain static server with every `.php` removed —
-the course still loads, says "read only", and explains why Run cannot work.
+the course still loads, says "read only", explains why Run cannot work, and offers the
+**In playground** fallback: its URL is decoded here and compared with the snippet it came
+from, so the link is proven to carry the exact code at PHP 8.4.
+
+34 checks in total. The same run also asserts the playground button is absent while the real
+runner is answering.
 
 ## Environment variables
 

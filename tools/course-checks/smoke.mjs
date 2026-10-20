@@ -12,6 +12,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 
 const { JSDOM, VirtualConsole } = jsdomPkg;
 
@@ -19,6 +20,19 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const COURSE_DIR = path.resolve(HERE, '..', '..', 'public', 'course');
 const BASE = process.env.BASE || 'http://127.0.0.1:8092/course/';
 const STATIC_PORT = Number(process.env.STATIC_PORT || 8093);
+
+// The same compressor the pages ship, used here to decode what the button produces.
+const vendorRequire = createRequire(import.meta.url);
+const LZ = vendorRequire(path.join(COURSE_DIR, 'js', 'lz-string.js'));
+
+function decodePlayground(url) {
+  if (!url) return null;
+  try {
+    return LZ.decompressFromEncodedURIComponent(new URL(url).searchParams.get('c'));
+  } catch {
+    return null;
+  }
+}
 
 const results = [];
 const failures = [];
@@ -59,7 +73,11 @@ function makeDom(html, base) {
     virtualConsole,
     beforeParse(window) {
       window.fetch = (input, init) => fetch(new URL(input, base), init);
-      window.open = () => null;
+      window.__opened = [];
+      window.open = (url) => {
+        window.__opened.push(url);
+        return null;
+      };
       window.matchMedia = () => ({ matches: false, addEventListener() {}, removeEventListener() {} });
       window.IntersectionObserver = class { observe() {} unobserve() {} disconnect() {} takeRecords() { return []; } };
       window.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} };
@@ -96,6 +114,7 @@ check('PHP is highlighted', $$('pre.hl .tok-kw').length > 0 || $$('pre.hl .tok-c
 check('quiz renders', $$('.quiz-item').length >= 2, `${$$('.quiz-item').length}`);
 check('exercise renders', !!$('.exercise'));
 check('docs links go to php.net', $$('.docs-list a').every((a) => a.getAttribute('href').startsWith('https://www.php.net/manual/en/')), $$('.docs-list a')[0]?.getAttribute('href'));
+check('no playground buttons while the runner works', $$('.snippet-btn.is-play').length === 0, `${$$('.snippet-btn.is-play').length}`);
 check('toolchain badge shows the interpreter', /php\s*8\./i.test(text($('#rail-toolchain'))), text($('#rail-toolchain')));
 
 // run the first snippet
@@ -204,6 +223,17 @@ const offlineReceipt = await waitFor(() => {
   return r ? r : null;
 }, { label: 'offline run attempt' });
 check('running offline explains why it cannot', offlineReceipt.dataset.kind === 'err', text(offlineReceipt.querySelector('.receipt-body')).slice(0, 100));
+
+// the fallback: hand the snippet to a playground that does run PHP
+const playButtons = Array.from(offline.window.document.querySelectorAll('.snippet-btn.is-play'));
+check('static copy offers the playground', playButtons.length >= 1, `${playButtons.length} buttons`);
+check('the compressor loaded', typeof offline.window.LZString === 'object');
+const snippetCode = offline.window.document.querySelector('.snippet code').textContent;
+playButtons[0].dispatchEvent(new offline.window.MouseEvent('click', { bubbles: true }));
+const opened = offline.window.__opened || [];
+check('the button opens php-play.dev', opened.length === 1 && opened[0].startsWith('https://php-play.dev/?c='), String(opened[0] || '').slice(0, 64));
+check('the link requests PHP 8.4', /[?&]v=8\.4(&|$)/.test(opened[0] || ''), String(opened[0] || '').slice(0, 90));
+check('the link carries this exact snippet', decodePlayground(opened[0]) === snippetCode, JSON.stringify(decodePlayground(opened[0]) || '').slice(0, 90));
 
 offline.window.close();
 dom.window.close();

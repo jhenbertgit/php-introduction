@@ -13,6 +13,8 @@
   'use strict';
 
   var RUNNER = 'runner.php';
+  var PLAYGROUND = 'https://php-play.dev/';
+  var PLAYGROUND_VERSION = '8.4';
   var state = { online: false, php: null, note: 'checking for a local runner…' };
   var blocks = [];
   var chip = null;
@@ -33,6 +35,41 @@
     if (className) node.className = className;
     if (text != null) node.textContent = text;
     return node;
+  }
+
+  /* php-play.dev runs PHP in the browser through WebAssembly and takes the code from its
+     ?c= parameter as an lz-string. No API, no server: the whole program rides in the URL,
+     which makes it a free fallback where our own runner cannot exist (the Pages copy). */
+  function playgroundUrl(code) {
+    if (typeof LZString === 'undefined' || typeof LZString.compressToEncodedURIComponent !== 'function') {
+      return null;
+    }
+    return PLAYGROUND +
+      '?c=' + LZString.compressToEncodedURIComponent(String(code || '')) +
+      '&v=' + PLAYGROUND_VERSION +
+      '&f=html';
+  }
+
+  function addPlaygroundButton(record) {
+    var bar = record.block.querySelector('.run-bar');
+    if (!bar || bar.querySelector('.run-play-btn')) return;
+
+    var btn = el('button', 'run-quiet run-play-btn', 'In playground');
+    btn.type = 'button';
+    btn.title = 'Run this snippet on php-play.dev (PHP ' + PLAYGROUND_VERSION + ', in your browser)';
+    btn.addEventListener('click', function () {
+      var url = playgroundUrl(record.textarea.value);
+      if (url) {
+        window.open(url, '_blank', 'noopener');
+      } else {
+        btn.textContent = 'unavailable';
+        btn.disabled = true;
+      }
+    });
+
+    var status = bar.querySelector('.run-status');
+    if (status) bar.insertBefore(btn, status);
+    else bar.appendChild(btn);
   }
 
   function highlightSource(source) {
@@ -289,7 +326,8 @@
       meta.textContent = '';
       body.textContent =
         'This copy is reading only. Run the app locally (docker compose up) and open it at ' +
-        'http://localhost to execute snippets with PHP 8.4.';
+        'http://localhost to execute snippets with PHP 8.4 — or press In playground to run this ' +
+        'snippet on php-play.dev, which executes PHP in your browser.';
     }
 
     // keep the toolbar honest about the runner state
@@ -413,6 +451,7 @@
           record.runBtn.disabled = true;
           record.runBtn.title = state.note;
           record.setStatus('offline', 'err');
+          addPlaygroundButton(record);
         }
       });
     });

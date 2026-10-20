@@ -11,6 +11,25 @@
   const STORE_KEY = 'php-handson-v1';
   const MANUAL = 'https://www.php.net/manual/en/';
 
+  // php-play.dev runs PHP in the browser through WebAssembly and reads the code from its
+  // ?c= parameter as an lz-string. It has no API — the whole program is in the URL — which
+  // makes it a free fallback wherever our own runner cannot exist (the static Pages copy).
+  const PLAYGROUND = 'https://php-play.dev/';
+  const PLAYGROUND_VERSION = '8.4';
+
+  function playgroundUrl(code) {
+    const compressor = window.LZString;
+    if (!compressor || typeof compressor.compressToEncodedURIComponent !== 'function') return null;
+    return `${PLAYGROUND}?c=${compressor.compressToEncodedURIComponent(String(code || ''))}&v=${PLAYGROUND_VERSION}&f=html`;
+  }
+
+  function openPlayground(code) {
+    const url = playgroundUrl(code);
+    if (!url) return false;
+    window.open(url, '_blank', 'noopener');
+    return true;
+  }
+
   /* ------------------------------------------------------------- progress -- */
 
   function defaultProgress() {
@@ -388,6 +407,22 @@
       bar.appendChild(editBtn);
     }
 
+    // Where our own runner cannot exist, hand the snippet to a playground that can run it.
+    if (runnable && !state.online) {
+      const playBtn = document.createElement('button');
+      playBtn.type = 'button';
+      playBtn.className = 'snippet-btn is-play';
+      playBtn.textContent = 'In playground';
+      playBtn.title = `Run this snippet on php-play.dev (PHP ${PLAYGROUND_VERSION}, in your browser)`;
+      playBtn.addEventListener('click', () => {
+        if (!openPlayground(block.code)) {
+          playBtn.textContent = 'unavailable';
+          playBtn.disabled = true;
+        }
+      });
+      bar.appendChild(playBtn);
+    }
+
     const pre = document.createElement('pre');
     pre.className = 'hl';
     const codeEl = document.createElement('code');
@@ -413,11 +448,9 @@
       runBtn.addEventListener('click', async () => {
         out.hidden = false;
         if (!state.online) {
-          const note = state.note || 'the interpreter is not reachable';
-          const guidance = /docker|localhost/i.test(note)
-            ? note
-            : `${note} — run the project locally (docker compose up -d) and open http://localhost/course/`;
-          out.replaceChildren(buildErrorReceipt(guidance));
+          out.replaceChildren(buildErrorReceipt(
+            `This copy is static, so PHP cannot run here. Press "In playground" to run this code on php-play.dev (PHP ${PLAYGROUND_VERSION}, in your browser), or run the project locally with docker compose up.`,
+          ));
           return;
         }
         runBtn.disabled = true;
@@ -968,7 +1001,8 @@
     }
     if (!state.online) {
       setStatus('no interpreter', 'err');
-      dom.benchOut.replaceChildren(buildErrorReceipt(state.note || 'the interpreter is not reachable'));
+      const note = state.note || 'the interpreter is not reachable';
+      dom.benchOut.replaceChildren(buildErrorReceipt(`${note} — press Playground above to run this code on php-play.dev instead.`));
       return;
     }
 
@@ -1163,6 +1197,9 @@
       dom.reqJson.focus();
     };
     dom.btnReq.addEventListener('click', toggleRequest);
+    dom.btnPlayground.addEventListener('click', () => {
+      if (!openPlayground(dom.editor.value)) setStatus('the compressor did not load', 'err');
+    });
     dom.btnReqClear.addEventListener('click', () => {
       dom.reqJson.value = '';
       dom.benchReq.classList.remove('is-bad');
@@ -1250,6 +1287,7 @@
     btnSolution: 'btn-solution',
     btnReq: 'btn-req',
     btnReqClear: 'btn-req-clear',
+    btnPlayground: 'btn-playground',
     btnToc: 'btn-toc',
     btnBenchClose: 'btn-bench-close',
     scrim: 'scrim',

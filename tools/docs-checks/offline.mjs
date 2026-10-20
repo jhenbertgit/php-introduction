@@ -11,6 +11,9 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
+
+const vendorRequire = createRequire(import.meta.url);
 
 const { JSDOM, VirtualConsole } = jsdomPkg;
 
@@ -64,7 +67,11 @@ const dom = new JSDOM(html, {
   virtualConsole,
   beforeParse(window) {
     window.fetch = (input, init) => fetch(new URL(input, BASE), init);
-    window.open = () => null;
+    window.__opened = [];
+    window.open = (url) => {
+      window.__opened.push(url);
+      return null;
+    };
     window.matchMedia = () => ({ matches: false, addEventListener() {}, removeEventListener() {} });
     window.IntersectionObserver = class { observe() {} unobserve() {} disconnect() {} takeRecords() { return []; } };
     window.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} };
@@ -104,6 +111,16 @@ await sleep(150);
 const out = record.outEl;
 check('clicking Run explains it cannot run', !out.hidden && /Not runnable here/i.test(out.textContent), out.hidden ? 'panel stayed hidden' : out.textContent.trim().slice(0, 90));
 check('the explanation names the fix', /docker compose up/i.test(out.textContent), out.textContent.trim().slice(0, 120));
+
+// the fallback: the same snippet can still be run, in php-play.dev
+const LZ = vendorRequire(path.join(DOCS_DIR, 'lz-string.js'));
+const playBtns = Array.from(document.querySelectorAll('.run-play-btn'));
+check('static copy offers the playground', playBtns.length >= 100, `${playBtns.length} buttons`);
+playBtns[0].dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+const openedUrl = (window.__opened || [])[0];
+check('the button opens php-play.dev', !!openedUrl && openedUrl.startsWith('https://php-play.dev/?c='), String(openedUrl || '').slice(0, 64));
+const decoded = openedUrl ? LZ.decompressFromEncodedURIComponent(new URL(openedUrl).searchParams.get('c')) : null;
+check('the link carries the block\'s exact code', decoded === playBtns[0].closest('.code-block').querySelector('textarea').value, JSON.stringify(decoded || '').slice(0, 80));
 
 dom.window.close();
 server.close();
