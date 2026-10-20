@@ -411,9 +411,15 @@
 
     if (runBtn) {
       runBtn.addEventListener('click', async () => {
+        out.hidden = false;
+        if (!state.online) {
+          out.replaceChildren(buildErrorReceipt(
+            `${state.note || 'the interpreter is not reachable'} — run the project locally (docker compose up -d) and open http://localhost/course/`,
+          ));
+          return;
+        }
         runBtn.disabled = true;
         runBtn.textContent = 'Running';
-        out.hidden = false;
         out.replaceChildren(buildPendingReceipt('running snippet.php…'));
         try {
           const result = await runCode(block.code, block.request || {});
