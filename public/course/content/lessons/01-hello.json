@@ -1,0 +1,101 @@
+{
+  "id": "01-hello",
+  "title": "Your first PHP page",
+  "minutes": 7,
+  "summary": "What the server does with a .php file, and how to print something.",
+  "keywords": ["echo", "php tags", "request", "comments"],
+  "blocks": [
+    {
+      "type": "prose",
+      "html": "<p>A <code>.php</code> file is not sent to the browser. The server reads it, runs the parts inside <code>&lt;?php ?&gt;</code>, and sends whatever the script printed. The visitor never sees your source code — only the result.</p><p>That is the whole idea of a server-side language: the page is built fresh on every request, by code that runs on the server.</p>"
+    },
+    {
+      "type": "diagram",
+      "title": "one request, start to finish",
+      "ascii": "  browser                        server\n\n  GET /index.php  ----------->  Apache\n                                  |\n                                  v\n                               PHP interpreter\n                                  |  runs index.php\n                                  v\n  HTML  <---------------------  the page it printed\n\n  The PHP source never leaves the server."
+    },
+    {
+      "type": "code",
+      "title": "hello.php",
+      "code": "<?php\n\necho \"Hello, PHP\";\n",
+      "output": "Hello, PHP"
+    },
+    {
+      "type": "prose",
+      "html": "<p><code>echo</code> writes to the response body. Nothing is added around it: no newline, no HTML, no quotes. What you print is what arrives.</p><p>Anything <em>outside</em> the PHP tags is copied to the output untouched. That is how a PHP file can be mostly HTML with a few dynamic islands.</p>"
+    },
+    {
+      "type": "code",
+      "title": "HTML with a PHP island",
+      "code": "<?php $status = \"ok\"; ?>\n<p>Status: <?php echo $status; ?></p>\n",
+      "output": "<p>Status: ok</p>"
+    },
+    {
+      "type": "callout",
+      "tone": "help",
+      "html": "<p>These snippets run as standalone scripts, which is why they print plain text. In this repository the same code runs inside Apache: <code>docker compose up -d</code>, then open <a href=\"http://localhost\" target=\"_blank\" rel=\"noopener\">http://localhost</a>. The file <code>public/index.php</code> is the entry point, and it includes one exercise at a time.</p>"
+    },
+    {
+      "type": "code",
+      "title": "echo takes a list",
+      "code": "<?php\n\necho \"PHP \", 8.4, \" is running\";\n",
+      "output": "PHP 8.4 is running"
+    },
+    {
+      "type": "prose",
+      "html": "<p><code>echo</code> accepts several comma-separated values and prints them in order, with nothing between them — not even a space. Add the space yourself, or use <code>.</code> to concatenate strings into one value.</p>"
+    },
+    {
+      "type": "code",
+      "title": "concatenate with a dot",
+      "code": "<?php\n\n$greeting = \"Hello\" . \", \" . \"world\";\necho $greeting;\n",
+      "output": "Hello, world"
+    },
+    {
+      "type": "callout",
+      "tone": "warn",
+      "html": "<p>The dot is not optional. <code>\"Hello\" \"world\"</code> is a syntax error, because two values in a row mean nothing to PHP — you must say how they combine.</p>"
+    },
+    {
+      "type": "code",
+      "title": "comments",
+      "code": "<?php\n\n// A line comment runs to the end of the line.\n# This style works too, but // is the convention. /* This one spans lines. */\n\necho \"comments are free\";\n",
+      "output": "comments are free"
+    }
+  ],
+  "quiz": [
+    {
+      "q": "What does the browser receive when it requests a .php file?",
+      "options": ["The PHP source code", "The output the script printed", "Both, in one response"],
+      "answer": 1,
+      "why": "The server executes the file and sends only the output. The source stays on the server."
+    },
+    {
+      "q": "Which of these prints ab with no space?",
+      "options": ["echo \"a\", \"b\";", "echo \"a\" . \"b\";", "Both do"],
+      "answer": 2,
+      "why": "Comma-separated echo arguments and dot concatenation both produce ab. The comma form prints each value in turn; the dot form builds one string first."
+    },
+    {
+      "q": "What is printed by a file that contains only HTML, with no <?php tag?",
+      "options": ["Nothing, the file is invalid", "The HTML, unchanged", "An error about a missing tag"],
+      "answer": 1,
+      "why": "Text outside PHP tags is sent as-is. A .php file with no PHP in it is a perfectly valid static page."
+    }
+  ],
+  "exercise": {
+    "brief": "Print exactly two lines. The first is the word PHP. The second is sum: followed by the result of 2 + 2.",
+    "starter": "<?php\n\n// print two lines\n",
+    "hint": "Each echo writes one line if you end it with \\n. The value of 2 + 2 can be printed directly: echo \"sum: \", 2 + 2, \"\\n\";",
+    "checks": [
+      { "kind": "stdoutLines", "value": 2 },
+      { "kind": "outputContains", "value": "PHP" },
+      { "kind": "outputContains", "value": "sum: 4" }
+    ],
+    "solution": "<?php\n\necho \"PHP\\n\";\necho \"sum: \", 2 + 2, \"\\n\";\n"
+  },
+  "docs": [
+    { "label": "PHP manual · Your first PHP-enabled page", "href": "tutorial.firstpage.php" },
+    { "label": "PHP manual · PHP tags", "href": "language.basic-syntax.phptags.php" }
+  ]
+}

@@ -1,0 +1,102 @@
+{
+  "id": "14-project",
+  "title": "The project you are standing in",
+  "minutes": 12,
+  "summary": "Composer, PSR-4, the public document root, and tests you write yourself.",
+  "keywords": ["composer", "psr-4", "autoload", "document root", "strict types", "makefile"],
+  "blocks": [
+    {
+      "type": "prose",
+      "html": "<p>Everything so far ran as a single file. The repository around this course is a small Composer project, and every piece of it exists for a reason we have already met: classes live in <code>src/</code>, the pages live in <code>public/</code>, and one generated file, <code>vendor/autoload.php</code>, knows where every class is so no page ever writes a <code>require</code> for <code>GradeCalculator</code>.</p>"
+    },
+    {
+      "type": "diagram",
+      "title": "the repository",
+      "ascii": "php-basic/\n  composer.json      the name, the PHP version, the PSR-4 map\n  composer.lock      exact versions, committed\n  Makefile           up / shell / lint / test\n  docker-compose.yml the PHP 8.4 + Apache services\n  src/\n    GradeCalculator.php    App\\GradeCalculator\n  public/            <- the document root\n    index.php              entry point\n    atm_withdrawal.php\n    gradeCalculator.index.php\n    example.php\n    student_directory_with_functions_array.php\n  vendor/\n    autoload.php     generated from composer.json\n  usr/config/\n    php.ini          display_errors off, production\n    php.ini-dev      display_errors on, development"
+    },
+    {
+      "type": "prose",
+      "html": "<p>Apache's document root is <code>public/</code>, so a URL maps to a file in there and nowhere else: <code>/gradeCalculator.index.php</code> is that file. <code>public/index.php</code> is the front page, and it pulls in one exercise at a time with <code>include</code> — the line that is commented out is the one that is not running.</p>"
+    },
+    {
+      "type": "callout",
+      "tone": "warn",
+      "html": "<p>Never point the document root at the repository root. A <code>.php</code> file in the web root gets executed, which is what you want, but <code>composer.json</code>, <code>composer.lock</code>, <code>.env</code>, and anything in <code>vendor/</code> would then be served as plain text to anyone who guesses the path. <code>public/</code> is the only directory the world may see.</p>"
+    },
+    {
+      "type": "code",
+      "title": "a page uses the class",
+      "code": "<?php\n\nuse App\\GradeCalculator;\n\n$calculator = new GradeCalculator(\n    quiz: 90.0,\n    assignment: 88.0,\n    midterm: 91.5,\n    final: 87.0,\n);\n\necho number_format($calculator->getFinalGrade(), 2), \"\\n\";\necho $calculator->getLetterGrade(), \"\\n\";\necho $calculator->getRemarks(), \"\\n\";\necho $calculator->isPassed() ? 'passed' : 'failed', \"\\n\";\n",
+      "output": "88.93\nB+\nGood\npassed"
+    },
+    {
+      "type": "prose",
+      "html": "<p>There is no <code>require</code> line for the class, and the file is never named. <code>composer.json</code> holds the map: <code>\"App\\\\\": \"src/\"</code> means the namespace <code>App</code> lives in <code>src/</code>. PSR-4 means the rest of the class name is the path, so <code>App\\GradeCalculator</code> is <code>src/GradeCalculator.php</code>, and that file opens with <code>namespace App;</code> while the page that uses it writes <code>use App\\GradeCalculator;</code>. <code>vendor/autoload.php</code> is Composer's register-on-demand loader built from that map; <code>composer dump-autoload</code> rebuilds it after you add a class, and <code>public/index.php</code> requires it once for every page.</p>"
+    },
+    {
+      "type": "code",
+      "title": "declare(strict_types=1) at the top",
+      "code": "<?php\n\ndeclare(strict_types=1);\n\nuse App\\GradeCalculator;\n\ntry {\n    new GradeCalculator(quiz: \"90\", assignment: 80.0, midterm: 80.0, final: 80.0);\n    echo \"the string was accepted\\n\";\n} catch (TypeError $e) {\n    echo 'rejected with ', get_class($e), \"\\n\";\n}\n",
+      "output": "rejected with TypeError"
+    },
+    {
+      "type": "prose",
+      "html": "<p><code>declare(strict_types=1);</code> must be the first statement in the file and it applies to the file it is written in. With it, a <code>string</code> handed to a <code>float</code> parameter is a <code>TypeError</code>; without it the same call quietly converts <code>\"90\"</code> to <code>90.0</code> and the bug moves to the report. <code>src/GradeCalculator.php</code> declares it, and every page that calls into it should too.</p><p>Above the classes, <code>composer.json</code> requires <code>php: ^8.4</code> and defines two scripts: <code>lint</code> runs <code>php -l</code> over every file, <code>test</code> is the hook where a test framework goes. The <code>Makefile</code> wraps the daily commands — <code>make up</code> starts the containers, <code>make shell</code> opens a shell inside the PHP container, <code>make lint</code> lints everything the container can see.</p>"
+    },
+    {
+      "type": "code",
+      "title": "tests without a framework",
+      "code": "<?php\n\ndeclare(strict_types=1);\n\nuse App\\GradeCalculator;\n\nfunction assertEquals(string $label, string $expected, string $actual): void\n{\n    if ($actual !== $expected) {\n        throw new RuntimeException($label . ': expected ' . $expected . ', got ' . $actual);\n    }\n\n    echo 'ok  ', $label, \"\\n\";\n}\n\n$good = new GradeCalculator(quiz: 90.0, assignment: 88.0, midterm: 91.5, final: 87.0);\n$poor = new GradeCalculator(quiz: 50.0, assignment: 50.0, midterm: 50.0, final: 50.0);\n\nassertEquals('letter for 88.93', 'B+', $good->getLetterGrade());\nassertEquals('fifty percent fails', 'failed', $poor->isPassed() ? 'passed' : 'failed');\n\necho \"2 passed\\n\";\n",
+      "output": "ok  letter for 88.93\nok  fifty percent fails\n2 passed"
+    },
+    {
+      "type": "code",
+      "title": "and one that fails",
+      "code": "<?php\n\ndeclare(strict_types=1);\n\nuse App\\GradeCalculator;\n\nfunction assertEquals(string $label, string $expected, string $actual): void\n{\n    if ($actual !== $expected) {\n        throw new RuntimeException($label . ': expected ' . $expected . ', got ' . $actual);\n    }\n}\n\ntry {\n    $good = new GradeCalculator(quiz: 90.0, assignment: 88.0, midterm: 91.5, final: 87.0);\n    assertEquals('letter for 88.93', 'A', $good->getLetterGrade());\n    echo \"everything passed\\n\";\n} catch (RuntimeException $e) {\n    echo 'failed: ', $e->getMessage(), \"\\n\";\n}\n",
+      "output": "failed: letter for 88.93: expected A, got B+"
+    },
+    {
+      "type": "callout",
+      "tone": "note",
+      "html": "<p>That is the whole idea of a test runner: a list of expected-versus-actual pairs, each one throwing on a mismatch. <code>make test</code> is where PHPUnit goes — the <code>test</code> script in <code>composer.json</code> already points at <code>phpunit</code>, and the <code>Makefile</code> target currently just prints a reminder. When the suite grows past a screenful, that is the moment to install it.</p>"
+    },
+    {
+      "type": "prose",
+      "html": "<p><strong>Where to go next.</strong> Open the four exercise pages and read them top to bottom; you can now read every line of them.</p><ul><li><code>public/atm_withdrawal.php</code> — a PIN check with a session-held balance and form validation.</li><li><code>public/gradeCalculator.index.php</code> — the form that feeds <code>App\\GradeCalculator</code>, including the <code>match</code> in <code>getRemarks()</code>.</li><li><code>public/student_directory_with_functions_array.php</code> — arrays, loops, and functions doing the work.</li><li><code>public/example.php</code> — array functions and objects side by side.</li></ul><p>Then read the three manual pages linked below this chapter — autoloading, namespaces, and type declarations — and the language reference they sit in. Change one number in <code>src/GradeCalculator.php</code>, refresh, and watch the page follow the code. That loop — edit, run, read the output — is the whole job.</p>"
+    }
+  ],
+  "quiz": [
+    {
+      "q": "Which directory should Apache serve as the document root?",
+      "options": ["The repository root", "public/", "src/"],
+      "answer": 1,
+      "why": "public/ holds the pages and nothing else. Anything outside it — composer.json, .env, src/, vendor/ — then has no URL and cannot be downloaded."
+    },
+    {
+      "q": "With PSR-4 \"App\\\\\": \"src/\", where must App\\GradeCalculator live?",
+      "options": ["src/GradeCalculator.php", "src/App/GradeCalculator.php", "src/App/GradeCalculator.class.php"],
+      "answer": 0,
+      "why": "The prefix App\\ is mapped to src/, and the remaining class name is the path: GradeCalculator.php. The filename must match the class name exactly, case included."
+    },
+    {
+      "q": "What does declare(strict_types=1) change about a call to a function with typed parameters?",
+      "options": ["Nothing at runtime", "It makes argument checks strict in that file, so a string is not silently cast to float", "It makes the whole project strict for every file"],
+      "answer": 1,
+      "why": "It applies per file and is checked at the call site: with it, a string passed to a float parameter throws TypeError instead of being converted."
+    }
+  ],
+  "exercise": {
+    "brief": "Build a GradeCalculator for quiz 90, assignment 88, midterm 91.5, and final 87, then print its letter grade on the first line and passed or failed on the second. The class comes from App, so add use App\\GradeCalculator; at the top.",
+    "starter": "<?php\n\ndeclare(strict_types=1);\n\nuse App\\GradeCalculator;\n\n// 1. build a calculator with quiz 90.0, assignment 88.0, midterm 91.5, final 87.0\n// 2. print its letter grade\n// 3. print passed or failed, using isPassed()\n",
+    "hint": "Named arguments keep the four scores readable: new GradeCalculator(quiz: 90.0, assignment: 88.0, midterm: 91.5, final: 87.0). For the second line a ternary is enough: $calculator->isPassed() ? 'passed' : 'failed'.",
+    "checks": [
+      { "kind": "outputEquals", "value": "B+\npassed" }
+    ],
+    "solution": "<?php\n\ndeclare(strict_types=1);\n\nuse App\\GradeCalculator;\n\n$calculator = new GradeCalculator(\n    quiz: 90.0,\n    assignment: 88.0,\n    midterm: 91.5,\n    final: 87.0,\n);\n\necho $calculator->getLetterGrade(), \"\\n\";\necho $calculator->isPassed() ? 'passed' : 'failed', \"\\n\";\n"
+  },
+  "docs": [
+    { "label": "PHP manual · Autoloading classes", "href": "language.oop5.autoload.php" },
+    { "label": "PHP manual · Namespaces and why they exist", "href": "language.namespaces.rationale.php" },
+    { "label": "PHP manual · Type declarations", "href": "language.types.declarations.php" }
+  ]
+}

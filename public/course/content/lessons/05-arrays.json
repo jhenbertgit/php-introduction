@@ -1,0 +1,109 @@
+{
+  "id": "05-arrays",
+  "title": "Arrays and the loops that fit them",
+  "minutes": 10,
+  "summary": "Indexed and associative arrays, foreach with keys, and the functions that fit them.",
+  "keywords": ["array", "foreach", "count", "array_map", "array_filter", "usort"],
+  "blocks": [
+    {
+      "type": "prose",
+      "html": "<p>An array is an ordered table of key and value pairs. In the common case you leave the keys out: <code>[\"John\", \"Jane\", \"Maria\"]</code> gets the keys 0, 1, 2 in the order you wrote them. <code>array(...)</code> is the older spelling of the same literal and still appears in existing code.</p>"
+    },
+    {
+      "type": "code",
+      "title": "an indexed array",
+      "code": "<?php\n\n$persons = [\"John\", \"Jane\", \"Maria\"];\n$cars = array(\"Toyota\", \"Honda\", \"Ford\");   // same array, older spelling\n\necho $persons[0], \"\\n\";\necho $persons[2], \"\\n\";\necho count($cars), \" cars\\n\";\n",
+      "output": "John\nMaria\n3 cars"
+    },
+    {
+      "type": "callout",
+      "tone": "note",
+      "html": "<p><code>$persons[] = \"Pedro\";</code> appends at the next free index. You may also write a key yourself, and then the keys can have gaps: start with two names, append one, then assign index 10, and <code>count()</code> reports 4 — it counts elements, not the highest key.</p>"
+    },
+    {
+      "type": "code",
+      "title": "appending, and gaps",
+      "code": "<?php\n\n$persons = [\"John\", \"Jane\"];\n\n$persons[] = \"Maria\";      // next free index, 2\n$persons[10] = \"Pedro\";    // a gap is allowed; the key stays 10\n\necho count($persons), \"\\n\";\necho $persons[2], \"\\n\";\necho $persons[10], \"\\n\";\n",
+      "output": "4\nMaria\nPedro"
+    },
+    {
+      "type": "prose",
+      "html": "<p>The shape you will use every day is the associative array: string keys that describe the value, so the code reads like the thing it represents. A record is one array, and a list of records is an array of arrays.</p>"
+    },
+    {
+      "type": "code",
+      "title": "string keys, and reading them with foreach",
+      "code": "<?php\n\n$student = [\n    \"Student ID\" => 1001,\n    \"Student Name\" => \"Juan Dela Cruz\",\n    \"Course\" => \"BSIT\",\n];\n\necho $student[\"Student Name\"], \"\\n\";\n\nforeach ($student as $key => $value) {\n    echo $key, \": \", $value, \"\\n\";\n}\n",
+      "output": "Juan Dela Cruz\nStudent ID: 1001\nStudent Name: Juan Dela Cruz\nCourse: BSIT"
+    },
+    {
+      "type": "diagram",
+      "title": "what an array actually is",
+      "ascii": "  $student\n    key             value\n    \"Student ID\"    1001\n    \"Student Name\"  \"Juan Dela Cruz\"\n    \"Course\"        \"BSIT\"\n\n  An indexed array is the same table with 0, 1, 2 as keys,\n  in the order the values were written."
+    },
+    {
+      "type": "code",
+      "title": "an array of records",
+      "code": "<?php\n\n$students = [\n    [\"Student ID\" => 1001, \"Student Name\" => \"Juan Dela Cruz\"],\n    [\"Student ID\" => 1002, \"Student Name\" => \"Maria Santos\"],\n];\n\nforeach ($students as $student) {\n    echo $student[\"Student ID\"], \" - \", $student[\"Student Name\"], \"\\n\";\n}\n",
+      "output": "1001 - Juan Dela Cruz\n1002 - Maria Santos"
+    },
+    {
+      "type": "code",
+      "title": "four functions that save a loop",
+      "code": "<?php\n\n$names = [\"juan\", \"maria\", \"pedro\"];\n$scores = [80, 95, 0, 71];\n\n// implode() glues an array back into one string\necho implode(\", \", array_map('strtoupper', $names)), \"\\n\";\necho array_sum($scores), \"\\n\";\necho implode(\", \", array_filter($scores)), \"\\n\";   // without a callback: drops falsy\nvar_dump(in_array(95, $scores));\n",
+      "output": "JUAN, MARIA, PEDRO\n246\n80, 95, 71\nbool(true)"
+    },
+    {
+      "type": "code",
+      "title": "keys, sort and usort",
+      "code": "<?php\n\n$scores = [\"quiz\" => 80, \"final\" => 95, \"midterm\" => 71];\necho implode(\", \", array_keys($scores)), \"\\n\";\n\n$names = [\"Maria\", \"juan\", \"Pedro\"];\nsort($names);                      // ASCII order: capitals first\nsort($scores);                     // keys are gone: now 0, 1, 2\necho implode(\", \", $names), \"\\n\";\necho implode(\", \", $scores), \"\\n\";\n\n$names = [\"Maria\", \"juan\", \"Pedro\"];\nusort($names, 'strcasecmp');       // your own comparison, case-insensitive\necho implode(\", \", $names), \"\\n\";\n",
+      "output": "quiz, final, midterm\nMaria, Pedro, juan\n71, 80, 95\njuan, Maria, Pedro"
+    },
+    {
+      "type": "prose",
+      "html": "<p><code>sort()</code> sorts values and reindexes, which is why it is the wrong tool for a table with meaningful keys. <code>usort()</code> takes the comparison as an argument, so it can sort records any way you want — the usual form passes a small anonymous function, and chapter 06 shows you how to write those. Here a built-in comparison does the job.</p><p>That is everything <code>public/student_directory_with_functions_array.php</code> needs. Its <code>$students</code> array is the two-element table you just built, plus a third student, and it hands the table to <code>displayStudents()</code>.</p>"
+    },
+    {
+      "type": "code",
+      "title": "the directory page, rebuilt",
+      "code": "<?php\n\n$students = [\n    [\"Student ID\" => 1001, \"Student Name\" => \"Juan Dela Cruz\"],\n    [\"Student ID\" => 1002, \"Student Name\" => \"Maria Santos\"],\n    [\"Student ID\" => 1003, \"Student Name\" => \"Pedro Reyes\"]\n];\n\nfunction displayStudents(array $students)\n{\n    foreach ($students as $student) {\n        echo $student['Student ID'] . ' - ' . $student['Student Name'] . '<br>';\n    }\n}\n\ndisplayStudents($students);\necho \"Total: \", count($students), \"\\n\";\n",
+      "output": "1001 - Juan Dela Cruz<br>1002 - Maria Santos<br>1003 - Pedro Reyes<br>Total: 3"
+    }
+  ],
+  "quiz": [
+    {
+      "q": "You append to [\"a\", \"b\"] with $list[] = \"c\". Which key does the new element get?",
+      "options": ["0", "1", "2"],
+      "answer": 2,
+      "why": "The next free numeric index is used, so the third element gets 2. Existing keys are never reused, even if earlier ones were removed."
+    },
+    {
+      "q": "What does array_filter($scores) do when you pass no callback?",
+      "options": ["Returns the array unchanged", "Removes every falsy value, including 0", "Removes only null"],
+      "answer": 1,
+      "why": "Without a callback the current value is tested for truthiness, so 0, \"0\", \"\", null and [] all disappear. A zero score silently vanishing is a real bug."
+    },
+    {
+      "q": "Why is sort() the wrong choice for [\"quiz\" => 80, \"final\" => 95]?",
+      "options": ["It refuses string keys", "It sorts and reindexes, losing the keys", "It only sorts strings"],
+      "answer": 1,
+      "why": "sort() rebuilds the array with keys 0 and 1, so the labels quiz and final are gone. asort() and ksort() are the ones that keep keys."
+    }
+  ],
+  "exercise": {
+    "brief": "Build the students table from the directory page (Juan 1001, Maria 1002, Pedro 1003). Print one line per student as 1001 - Juan Dela Cruz, then a final line Total: 3.",
+    "starter": "<?php\n\n// an array of records, then one line each, then the total\n",
+    "hint": "Each record is [\"Student ID\" => 1001, \"Student Name\" => \"Juan Dela Cruz\"]. Use foreach over the outer array and count($students) for the total.",
+    "checks": [
+      { "kind": "stdoutLines", "value": 4 },
+      { "kind": "outputContains", "value": "1003 - Pedro Reyes" },
+      { "kind": "outputContains", "value": "Total: 3" }
+    ],
+    "solution": "<?php\n\n$students = [\n    [\"Student ID\" => 1001, \"Student Name\" => \"Juan Dela Cruz\"],\n    [\"Student ID\" => 1002, \"Student Name\" => \"Maria Santos\"],\n    [\"Student ID\" => 1003, \"Student Name\" => \"Pedro Reyes\"],\n];\n\nforeach ($students as $student) {\n    echo $student[\"Student ID\"], \" - \", $student[\"Student Name\"], \"\\n\";\n}\n\necho \"Total: \", count($students), \"\\n\";\n"
+  },
+  "docs": [
+    { "label": "PHP manual · Arrays", "href": "language.types.array.php" },
+    { "label": "PHP manual · array_map()", "href": "function.array-map.php" },
+    { "label": "PHP manual · usort()", "href": "function.usort.php" }
+  ]
+}

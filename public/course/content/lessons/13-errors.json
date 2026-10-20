@@ -1,0 +1,106 @@
+{
+  "id": "13-errors",
+  "title": "When things fail",
+  "minutes": 11,
+  "summary": "Warnings, notices, and fatals: what PHP does when things fail, and how to catch it.",
+  "keywords": ["warning", "fatal error", "try catch finally", "throw", "exceptions"],
+  "blocks": [
+    {
+      "type": "prose",
+      "html": "<p>PHP separates trouble into levels. A <strong>notice</strong> and a <strong>warning</strong> are notes: PHP prints them, guesses a value, and keeps running. A <strong>fatal error</strong> stops the script where it stands — nothing after it runs, and the response ends up half-written.</p><p>An uncaught exception ends the same way: the script stops and PHP prints the message. The difference is what you can do about it. An exception is an object travelling up the call stack, so code between the failure and the top of the request can catch it and decide what happens next.</p>"
+    },
+    {
+      "type": "code",
+      "title": "a warning keeps going",
+      "code": "<?php\n\n$scores = ['quiz' => 90, 'final' => 88];\n\necho \"before\\n\";\necho $scores['midterm'], \"\\n\";\necho \"still running\\n\";\n",
+      "output": "before\nWarning: Undefined array key \"midterm\"\nstill running"
+    },
+    {
+      "type": "prose",
+      "html": "<p>The real line continues with the file and line number where it happened, so the exact text depends on where the file lives; press Run in this chapter and you will see that suffix, plus a blank line PHP prints above the message. What is written above is the message itself. Note what happened to the value: the missing key evaluated to <code>null</code>, <code>echo</code> printed nothing, and the page carried on with a hole in it.</p><p>Whether you see these notes at all is a setting. <code>usr/config/php.ini</code> in this project turns display off for production and <code>php.ini-dev</code> turns it on, which is why a bug is loud on your machine and invisible on the server.</p>"
+    },
+    {
+      "type": "code",
+      "title": "raising a notice yourself",
+      "code": "<?php\n\ntrigger_error('This is a notice: odd, but survivable', E_USER_NOTICE);\ntrigger_error('This is a warning: fix it soon', E_USER_WARNING);\n\necho \"the script kept going\\n\";\n",
+      "output": "Notice: This is a notice: odd, but survivable\nWarning: This is a warning: fix it soon\nthe script kept going"
+    },
+    {
+      "type": "prose",
+      "html": "<p>PHP 8 raised most of the old notices to warnings, so you will meet warnings more often than notices in modern code. <code>trigger_error()</code> raises any level on demand, which is how a library tells you that something is off without stopping your page.</p><p>A fatal error is the other kind of day. Execution stops at that line, everything after it is skipped, and PHP prints what went wrong along with a stack trace.</p>"
+    },
+    {
+      "type": "code",
+      "title": "a fatal error, shown for its message",
+      "runnable": false,
+      "code": "<?php\n\nfunction add(int $a, int $b): int\n{\n    return $a + $b;\n}\n\necho \"starting\\n\";\necho add(\"ten\", 2), \"\\n\";\necho \"never printed\\n\";\n",
+      "output": "starting\n\nFatal error: Uncaught TypeError: add(): Argument #1 ($a) must be of type int, string given"
+    },
+    {
+      "type": "prose",
+      "html": "<p>There is no Run button on that block on purpose: running it would kill the request. The message continues with the file, the line, and a stack trace showing who called <code>add()</code>.</p><p>That <code>TypeError</code> is an object, and objects can be caught. The three keywords are <code>try</code>, <code>catch</code>, and <code>finally</code>: <code>throw</code> starts an exception on its way up, <code>try</code> marks the code you are willing to guard, <code>catch</code> names the class you can handle, and <code>finally</code> always runs — with an exception, without one, or on the way out with <code>return</code>.</p>"
+    },
+    {
+      "type": "code",
+      "title": "validate, throw, catch, finally",
+      "code": "<?php\n\nfunction validateScore(int $score): int\n{\n    if ($score < 0 || $score > 100) {\n        throw new InvalidArgumentException(\"Score must be 0-100, got $score\");\n    }\n\n    return $score;\n}\n\ntry {\n    echo \"checking\\n\";\n    validateScore(87);\n    validateScore(120);\n    echo \"never printed\\n\";\n} catch (InvalidArgumentException $e) {\n    echo 'caught: ', $e->getMessage(), \"\\n\";\n    echo \"Please enter a score between 0 and 100.\\n\";\n} finally {\n    echo \"cleanup always runs\\n\";\n}\n\necho \"the script continues\\n\";\n",
+      "output": "checking\ncaught: Score must be 0-100, got 120\nPlease enter a score between 0 and 100.\ncleanup always runs\nthe script continues"
+    },
+    {
+      "type": "prose",
+      "html": "<p><code>catch (InvalidArgumentException $e)</code> only takes exceptions of that class or a subclass of it. Everything else keeps travelling up to the next <code>catch</code>, and if nothing catches it, it becomes an uncaught fatal error. Clauses are tried in the order you write them, so put the specific class first and the general one after.</p><p>The general one is <code>Throwable</code>, an interface that both <code>Exception</code> and <code>Error</code> implement. <code>catch (Throwable $e)</code> is a net that catches engine errors like <code>TypeError</code> and <code>DivisionByZeroError</code> as well as your own exceptions.</p>"
+    },
+    {
+      "type": "code",
+      "title": "your own exception class",
+      "code": "<?php\n\nclass ScoreOutOfRange extends Exception\n{\n    private int $score;\n\n    public function __construct(int $score)\n    {\n        parent::__construct(\"Score $score is outside 0-100\");\n        $this->score = $score;\n    }\n\n    public function getScore(): int\n    {\n        return $this->score;\n    }\n}\n\nfunction assertScore(int $score): void\n{\n    if ($score < 0 || $score > 100) {\n        throw new ScoreOutOfRange($score);\n    }\n}\n\ntry {\n    assertScore(-5);\n} catch (ScoreOutOfRange $e) {\n    echo $e->getMessage(), \"\\n\";\n    echo 'offending score: ', $e->getScore(), \"\\n\";\n    echo 'caught as: ', get_class($e), \"\\n\";\n}\n\necho 'still an Exception: ';\nvar_dump(new ScoreOutOfRange(7) instanceof Exception);\n",
+      "output": "Score -5 is outside 0-100\noffending score: -5\ncaught as: ScoreOutOfRange\nstill an Exception: bool(true)"
+    },
+    {
+      "type": "code",
+      "title": "Throwable catches engine errors too",
+      "code": "<?php\n\nfunction average(int $total, int $count): float\n{\n    return $total / $count;\n}\n\ntry {\n    echo \"asking for an average\\n\";\n    echo average(120, 0), \"\\n\";\n    echo \"never printed\\n\";\n} catch (Throwable $e) {\n    echo 'engine error: ', get_class($e), ' - ', $e->getMessage(), \"\\n\";\n}\n\necho \"the request survived\\n\";\n",
+      "output": "asking for an average\nengine error: DivisionByZeroError - Division by zero\nthe request survived"
+    },
+    {
+      "type": "callout",
+      "tone": "warn",
+      "html": "<p>Do not catch and swallow. <code>catch (Throwable $e) {}</code> with an empty body turns every bug into a blank page, and the one thing you needed — the message — is gone. Either handle the failure (print a friendly line, return a default) or let it travel: a loud error beats a silent wrong answer.</p>"
+    }
+  ],
+  "quiz": [
+    {
+      "q": "Which two levels let the script keep running after PHP reports them?",
+      "options": ["Notice and warning", "Warning and fatal error", "Fatal error and uncaught exception"],
+      "answer": 0,
+      "why": "Notices and warnings are notes; execution continues. A fatal error, including an uncaught exception, ends the script at that line."
+    },
+    {
+      "q": "When does the finally block run?",
+      "options": ["Only when an exception was thrown", "Only when no exception was thrown", "Always, exception or not"],
+      "answer": 2,
+      "why": "finally runs in every path through the try block — normal exit, thrown exception, or a return — which is why cleanup goes there."
+    },
+    {
+      "q": "Which catch clause also catches a DivisionByZeroError?",
+      "options": ["catch (Exception $e)", "catch (Throwable $e)", "catch (InvalidArgumentException $e)"],
+      "answer": 1,
+      "why": "Engine errors like DivisionByZeroError extend Error, not Exception. Throwable is the interface both Exception and Error implement."
+    }
+  ],
+  "exercise": {
+    "brief": "Write a function setScore(int $score): int that throws an InvalidArgumentException with the message Score must be 0-100 when the score is outside that range, and returns the score otherwise. Call it with 150 inside try/catch and print invalid: followed by a space and the message. Then print ok: followed by a space and the result of calling it with 75.",
+    "starter": "<?php\n\nfunction setScore(int $score): int\n{\n    // throw when the score is outside 0-100\n\n    return $score;\n}\n\n// call it with 150 inside try/catch, printing: invalid: <message>\n// then print: ok: <setScore(75)>\n",
+    "hint": "Inside the catch block, $e->getMessage() is the text you passed to the exception. Both lines end with \\n.",
+    "checks": [
+      { "kind": "outputContains", "value": "invalid: Score must be 0-100" },
+      { "kind": "outputContains", "value": "ok: 75" },
+      { "kind": "stdoutLines", "value": 2 }
+    ],
+    "solution": "<?php\n\nfunction setScore(int $score): int\n{\n    if ($score < 0 || $score > 100) {\n        throw new InvalidArgumentException('Score must be 0-100');\n    }\n\n    return $score;\n}\n\ntry {\n    setScore(150);\n} catch (InvalidArgumentException $e) {\n    echo 'invalid: ', $e->getMessage(), \"\\n\";\n}\n\necho 'ok: ', setScore(75), \"\\n\";\n"
+  },
+  "docs": [
+    { "label": "PHP manual · Exceptions", "href": "language.exceptions.php" },
+    { "label": "PHP manual · Extending Exceptions", "href": "language.exceptions.extending.php" }
+  ]
+}

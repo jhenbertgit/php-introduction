@@ -1,0 +1,105 @@
+{
+  "id": "02-variables",
+  "title": "Values in variables",
+  "minutes": 8,
+  "summary": "The $ sigil, reassignment, dynamic typing, quoting rules, null, and constants.",
+  "keywords": ["variables", "var_dump", "interpolation", "isset", "null", "const"],
+  "blocks": [
+    {
+      "type": "prose",
+      "html": "<p>A variable is a name for a value. In PHP the name wears a <code>$</code>: <code>$studentName</code>. There is no declaration and no type to write down — a variable exists from the line that first assigns it.</p><p>The name itself is letters, digits and underscores, and the first character after the sigil cannot be a digit. The convention for ordinary variables is <code>camelCase</code>; constants use <code>UPPER_SNAKE_CASE</code>.</p>"
+    },
+    {
+      "type": "code",
+      "title": "what a name may look like",
+      "code": "<?php\n\n$studentName = \"Maria Santos\";   // camelCase, the usual style\n$_debugFlag = \"prefixed with underscore\";\n$score2 = 92;\n\necho $studentName, \" / \", $_debugFlag, \" / \", $score2, \"\\n\";\n\n// $2fast = \"no\";   // parse error: a name cannot start with a digit\n",
+      "output": "Maria Santos / prefixed with underscore / 92"
+    },
+    {
+      "type": "prose",
+      "html": "<p><code>=</code> is assignment, not comparison. Assigning to the same name again replaces the value: the old one is simply gone. Nothing declares a type either, so a variable can hold an integer on one line and a string on the next.</p><p>That freedom is dynamic typing, and it is why PHP gives you <code>var_dump()</code>: the variable will not tell you what is in it, so ask.</p>"
+    },
+    {
+      "type": "code",
+      "title": "reassignment, and a change of type",
+      "code": "<?php\n\n$course = \"PHP\";\necho $course, \"\\n\";\n\n$course = \"PHP 8.4\";   // same name, a new value\necho $course, \"\\n\";\n\n$course = 8.4;         // and now a different type\nvar_dump($course);\n",
+      "output": "PHP\nPHP 8.4\nfloat(8.4)"
+    },
+    {
+      "type": "code",
+      "title": "echo shows the value, var_dump shows the type",
+      "code": "<?php\n\n$total = 42;\n\necho $total, \"\\n\";   // the text only\nvar_dump($total);    // type and value\nvar_dump(\"42\");      // same characters, different type\n",
+      "output": "42\nint(42)\nstring(2) \"42\""
+    },
+    {
+      "type": "prose",
+      "html": "<p>Read that last line as: a string of two characters, containing <code>42</code>. <code>var_dump()</code> always prints the type first, and for strings it also prints the length. Keep it in one hand while you learn — it reports what PHP stored, not what you assumed.</p>"
+    },
+    {
+      "type": "code",
+      "title": "double quotes read variables, single quotes do not",
+      "code": "<?php\n\n$name = \"Juan\";\n\necho \"Hello, $name\\n\";        // double quotes: the variable is replaced\necho 'Hello, $name' . \"\\n\";   // single quotes: the text stays literal\necho \"Escaped: \\$name\\n\";     // a backslash keeps the dollar sign\n",
+      "output": "Hello, Juan\nHello, $name\nEscaped: $name"
+    },
+    {
+      "type": "callout",
+      "tone": "warn",
+      "html": "<p>Single quotes are literal all the way down: they do not interpolate <code>$name</code> and they do not understand <code>\\n</code> — you get a backslash and an n. Use double quotes when a variable should be replaced, single quotes when the text is just text.</p>"
+    },
+    {
+      "type": "prose",
+      "html": "<p>A variable that has never been assigned is not empty — it is undefined, and reading it emits a warning. <code>null</code> is different: it is a real value we assign on purpose to mean <em>nothing yet</em>. <code>isset()</code> answers the question you usually have: does this variable exist and is it not null?</p>"
+    },
+    {
+      "type": "code",
+      "title": "null and isset()",
+      "code": "<?php\n\n$middleName = null;\n\nvar_dump($middleName);\nvar_dump(isset($middleName));   // set, but null: false\nvar_dump(isset($nickname));     // never assigned: also false\n\n$middleName = \"Santos\";\nvar_dump(isset($middleName));   // now true\n",
+      "output": "NULL\nbool(false)\nbool(false)\nbool(true)"
+    },
+    {
+      "type": "prose",
+      "html": "<p>A constant names a value that must never change. It has no <code>$</code>, it is visible everywhere in the file, and assigning to it is an error. <code>const</code> is the modern form; <code>define()</code> is the function form, which still appears in older code and for names built at runtime.</p>"
+    },
+    {
+      "type": "code",
+      "title": "const and define()",
+      "code": "<?php\n\nconst TAX_RATE = 0.12;\ndefine('SITE_NAME', 'Student Directory');\n\necho SITE_NAME, \" charges \", TAX_RATE, \" tax\\n\";\nvar_dump(TAX_RATE);\n",
+      "output": "Student Directory charges 0.12 tax\nfloat(0.12)"
+    }
+  ],
+  "quiz": [
+    {
+      "q": "Which of these is a valid variable name?",
+      "options": ["$2fast", "$_total", "total"],
+      "answer": 1,
+      "why": "Letters, digits and underscores are allowed, but not as the first character, and the $ is not optional. total without a sigil is a bare word, which PHP treats as a constant."
+    },
+    {
+      "q": "What does var_dump(\"42\") print?",
+      "options": ["42", "int(42)", "string(2) \"42\""],
+      "answer": 2,
+      "why": "A value in quotes is a string, so var_dump reports the type and the character count. int(42) would be the dump of the bare number 42."
+    },
+    {
+      "q": "isset($x) returns false. Which value of $x could cause that?",
+      "options": ["$x = 0", "$x = null", "$x = \"\""],
+      "answer": 1,
+      "why": "isset() is false only when the variable is undefined or holds null. Zero and the empty string are set, so it returns true for them — which is why isset() is not an emptiness test."
+    }
+  ],
+  "exercise": {
+    "brief": "Create a variable holding the name Maria and one holding the score 92. Print exactly three lines: the name, the score, then one line that reads Maria scored 92 built from a single double-quoted string.",
+    "starter": "<?php\n\n// 1. two variables\n// 2. three lines: name, score, then a double-quoted sentence\n",
+    "hint": "Inside double quotes a variable is replaced by its value: echo \"$studentName scored $score\\n\";",
+    "checks": [
+      { "kind": "stdoutLines", "value": 3 },
+      { "kind": "outputContains", "value": "Maria scored 92" }
+    ],
+    "solution": "<?php\n\n$studentName = \"Maria\";\n$score = 92;\n\necho $studentName, \"\\n\";\necho $score, \"\\n\";\necho \"$studentName scored $score\\n\";\n"
+  },
+  "docs": [
+    { "label": "PHP manual · Variables: basics", "href": "language.variables.basics.php" },
+    { "label": "PHP manual · Constants", "href": "language.constants.php" },
+    { "label": "PHP manual · isset()", "href": "function.isset.php" }
+  ]
+}

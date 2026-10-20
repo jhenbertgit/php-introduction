@@ -1,18 +1,25 @@
-name: Deploy PHP Docs to GitHub Pages
+name: Deploy PHP site to GitHub Pages
 
-# Publishes public/docs as a static site.
+# Publishes two things, and refuses to publish either if the lessons are not true:
 #
-# The docs folder also contains runner.php, which executes snippets with a local PHP.
-# GitHub Pages cannot run PHP, so "*.php" is excluded from the artifact: the deployed
-# copy is read-only and the interactive layer says so instead of pretending to run.
+#   /course/  the interactive course (14 chapters, 84 runnable snippets)
+#   /docs/    the interactive PHP 8.4 guide (123 runnable snippets)
+#
+# Both folders contain run.php / runner.php, which execute code through a local PHP.
+# Pages cannot run PHP, so every *.php file is excluded from the artifact: the deployed
+# copies are read-only, and both front ends say so instead of pretending to run.
 #
 # One-time setup: Settings -> Pages -> Build and deployment -> Source: GitHub Actions.
 
 on:
   push:
-    branches: [main]
+    branches: [main, master]
     paths:
-      - 'public/docs/**'
+      - 'public/**'
+      - 'src/**'
+      - 'tools/**'
+      - 'composer.json'
+      - 'composer.lock'
       - '.github/workflows/deploy-pages.yml'
   workflow_dispatch:
 
@@ -26,38 +33,109 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
+  verify-and-deploy:
+    name: Verify lessons, then deploy
+    runs-on: ubuntu-24.04
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Check that the docs are self-consistent
+      - name: Set up PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          tools: composer:v2
+          coverage: none
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Install Composer dependencies
+        run: composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+
+      # The gate: lints and runs every snippet in the course, and every exercise solution
+      # against its own checks. A chapter that stops compiling blocks the deploy.
+      - name: Verify the course content
+        run: node tools/course-checks/verify.mjs
+
+      - name: Check the front ends reference their assets
         run: |
           set -eu
-          test -f public/docs/index.html
+          for page in course docs; do
+            test -f "public/$page/index.html" || { echo "missing public/$page/index.html"; exit 1; }
+          done
           for asset in interactive.css interactive.js runner.php; do
             test -f "public/docs/$asset" || { echo "missing public/docs/$asset"; exit 1; }
           done
-          for asset in interactive.css interactive.js; do
-            grep -q "$asset" public/docs/index.html || { echo "index.html does not load $asset"; exit 1; }
+          for asset in js/app.js js/highlight.js styles.css run.php; do
+            test -f "public/course/$asset" || { echo "missing public/course/$asset"; exit 1; }
           done
-          echo "docs reference their assets"
+          grep -q 'js/app.js' public/course/index.html
+          grep -q 'interactive.js' public/docs/index.html
+          echo "both front ends reference their assets"
 
-      - name: Stage the docs without the PHP runner
+      - name: Stage the site
         run: |
+          set -eu
           mkdir -p _site
-          rsync -a --exclude '*.php' public/docs/ _site/
+          rsync -a --exclude '*.php' public/course/ _site/course/
+          rsync -a --exclude '*.php' public/docs/ _site/docs/
           touch _site/.nojekyll
+          cat > _site/index.html <<'HTML'
+          <!doctype html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>PHP, hands on</title>
+            <style>
+              :root { color-scheme: light dark; }
+              body { margin: 0; min-height: 100vh; display: grid; place-items: center;
+                     font: 1.05rem/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+                     background: #e9ecf0; color: #14181e; }
+              main { max-width: 34rem; padding: 2rem; }
+              h1 { font-size: 2rem; letter-spacing: -.02em; margin: 0 0 .5rem; }
+              p { color: #4a5260; }
+              ul { list-style: none; padding: 0; margin: 1.75rem 0 0; }
+              li { border-top: 1px solid #c9d0da; }
+              a { display: flex; gap: .75rem; align-items: baseline; padding: .85rem 0;
+                  color: #14181e; text-decoration: none; }
+              a:hover { color: #0b7285; }
+              a span { margin-left: auto; font-size: .8rem; color: #6d7786;
+                       font-family: ui-monospace, Consolas, monospace; }
+              code { background: #f7f8fa; border: 1px solid #c9d0da; border-radius: 3px;
+                     padding: .1em .35em; font-size: .85em; }
+              footer { margin-top: 2rem; font-size: .85rem; color: #6d7786; }
+            </style>
+          </head>
+          <body>
+            <main>
+              <h1>PHP, hands on</h1>
+              <p>PHP 8.4 teaching material for this project: a fourteen-chapter course and a
+                 complete reference, both built from the code in this repository.</p>
+              <ul>
+                <li><a href="course/">The course <span>14 chapters</span></a></li>
+                <li><a href="docs/">The guide <span>123 snippets</span></a></li>
+              </ul>
+              <footer>
+                Run buttons execute PHP, and this copy is static, so they are disabled here:
+                the pages say so when you press one. Clone the project and run
+                <code>docker compose up -d</code> for the full experience.
+              </footer>
+            </main>
+          </body>
+          </html>
+          HTML
           echo "staged $(find _site -type f | wc -l) files"
 
       - name: Setup Pages
         uses: actions/configure-pages@v6
         with:
-          # Creates the Pages site on first run instead of failing with a 404.
           enablement: true
 
       - name: Upload artifact

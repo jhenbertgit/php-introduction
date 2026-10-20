@@ -1,0 +1,108 @@
+{
+  "id": "04-flow",
+  "title": "Branches and loops",
+  "minutes": 10,
+  "summary": "Truthiness, if and elseif, the ternary, match, and the three loop forms.",
+  "keywords": ["if", "truthiness", "ternary", "match", "while", "for", "foreach", "break"],
+  "blocks": [
+    {
+      "type": "prose",
+      "html": "<p><code>if</code> accepts any value and asks whether it is true. Most values are, so the rule is easier from the other side — these are falsy: <code>0</code>, <code>0.0</code>, <code>\"\"</code>, the string <code>\"0\"</code>, the empty array <code>[]</code>, <code>null</code>, and an unset variable.</p><p>Everything else is truthy, including <code>\" \"</code>, <code>\"false\"</code> and <code>-1</code>. Booleans are required nowhere and allowed everywhere.</p>"
+    },
+    {
+      "type": "code",
+      "title": "truthy and falsy",
+      "code": "<?php\n\nif (0 || \"\" || \"0\" || [] || null) {\n    echo \"at least one was true\\n\";\n} else {\n    echo \"all of them are falsy\\n\";\n}\n\nif (\" \" || \"0.0\" || -1) {\n    echo \"these are truthy\\n\";\n}\n",
+      "output": "all of them are falsy\nthese are truthy"
+    },
+    {
+      "type": "code",
+      "title": "if, elseif, else",
+      "code": "<?php\n\n$finalGrade = 84;\n\nif ($finalGrade >= 90) {\n    $remark = \"Excellent\";\n} elseif ($finalGrade >= 80) {\n    $remark = \"Good\";\n} elseif ($finalGrade >= 70) {\n    $remark = \"Fair\";\n} else {\n    $remark = \"Failed\";\n}\n\necho \"84 is \", $remark, \"\\n\";\n",
+      "output": "84 is Good"
+    },
+    {
+      "type": "callout",
+      "tone": "warn",
+      "html": "<p>The string <code>\"0\"</code> is falsy, so a form field where the visitor typed 0 reads as no answer and <code>if ($submitted)</code> takes the empty branch. When the value came from someone else, compare explicitly: <code>$submitted !== \"\"</code> is true for <code>\"0\"</code>.</p>"
+    },
+    {
+      "type": "prose",
+      "html": "<p>The ternary is an <code>if</code> that produces a value: <code>$cond ? $whenTrue : $whenFalse</code>. Its cousin <code>??</code> is the isset question as an expression — take the left side if it exists and is not null, otherwise the right side.</p>"
+    },
+    {
+      "type": "code",
+      "title": "ternary and null coalescing",
+      "code": "<?php\n\n$score = 74;\n$passed = $score >= 75 ? \"passed\" : \"failed\";\n\necho \"Score $score: $passed\\n\";\necho \"Retake: \", $score >= 75 ? \"no\" : \"yes\", \"\\n\";\necho \"Nickname: \", $nickname ?? \"none set\", \"\\n\";\n",
+      "output": "Score 74: failed\nRetake: yes\nNickname: none set"
+    },
+    {
+      "type": "prose",
+      "html": "<p><code>match</code> is a switch that returns a value. Each arm is a value to compare against and an expression to hand back. The comparison is strict, so <code>\"1\"</code> and <code>1</code> are different arms, and nothing falls through. If no arm matches and there is no <code>default</code>, PHP throws an <code>UnhandledMatchError</code>.</p>"
+    },
+    {
+      "type": "code",
+      "title": "match over the days of the week",
+      "code": "<?php\n\n$day = 3;\n\necho $day, \" => \", match ($day) {\n    1 => \"Monday\",\n    2 => \"Tuesday\",\n    3 => \"Wednesday\",\n    4 => \"Thursday\",\n    5 => \"Friday\",\n    6 => \"Saturday\",\n    7 => \"Sunday\",\n    default => \"Invalid input\",\n}, \"\\n\";\n",
+      "output": "3 => Wednesday"
+    },
+    {
+      "type": "code",
+      "title": "match is strict: \"1\" and 1 are different arms",
+      "code": "<?php\n\nforeach ([\"1\", 1, 8] as $value) {\n    echo gettype($value), \" => \", match ($value) {\n        \"1\" => \"string one\",\n        1 => \"integer one\",\n        default => \"no arm matched\",\n    }, \"\\n\";\n}\n",
+      "output": "string => string one\ninteger => integer one\ninteger => no arm matched"
+    },
+    {
+      "type": "code",
+      "title": "while and for",
+      "code": "<?php\n\n$balance = 5000;\n$withdrawn = 0;\n\n// while: keep going while the condition holds\nwhile ($balance >= 1000) {\n    $balance -= 1000;\n    $withdrawn += 1000;\n}\n\necho \"withdrew $withdrawn, left $balance\\n\";\n\n$total = 0;\n\n// for: counted loop, the counter lives in the head\nfor ($i = 1; $i <= 5; $i++) {\n    $total += $i;\n}\n\necho \"1 + 2 + 3 + 4 + 5 = $total\\n\";\n",
+      "output": "withdrew 5000, left 0\n1 + 2 + 3 + 4 + 5 = 15"
+    },
+    {
+      "type": "code",
+      "title": "foreach, with break and continue",
+      "code": "<?php\n\n$students = [\"Juan\", \"Maria\", \"Pedro\"];\n\n// foreach: once per element, in order\nforeach ($students as $index => $name) {\n    echo $index + 1, \". \", $name, \"\\n\";\n}\n\nforeach ([3, 7, 12, 15] as $number) {\n    if ($number % 2 === 0) {\n        continue;      // skip the rest of this turn\n    }\n    if ($number > 10) {\n        break;         // leave the loop completely\n    }\n    echo $number, \"\\n\";\n}\n",
+      "output": "1. Juan\n2. Maria\n3. Pedro\n3\n7"
+    },
+    {
+      "type": "prose",
+      "html": "<p>Those are the three loop forms: <code>while</code> when you do not know how many turns it takes, <code>for</code> when you do, and <code>foreach</code> when you are walking a list. Every one of them can be left early with <code>break</code> or cut short with <code>continue</code>.</p><p>Now open <code>public/example.php</code> in the project. The commented-out <code>getDayName()</code> at the top is exactly the <code>match</code> you just ran, wrapped in a function and called from a <code>for</code> loop — the file has been using <code>match</code> all along. Chapter 06 adds the wrapper.</p>"
+    }
+  ],
+  "quiz": [
+    {
+      "q": "Which value is truthy?",
+      "options": ["\"0\"", "[]", "\"false\""],
+      "answer": 2,
+      "why": "Any non-empty string except the single character 0 is truthy, so \"false\" passes an if. The string \"0\" and the empty array are falsy."
+    },
+    {
+      "q": "What does match return when no arm matches and there is no default?",
+      "options": ["null", "false", "It throws an UnhandledMatchError"],
+      "answer": 2,
+      "why": "match has no fallback of its own. Without a default arm an unmatched value is a runtime error, which is why the day example ends with one."
+    },
+    {
+      "q": "match compares strictly. What happens when 0.1 + 0.2 is matched against the arm 0.3?",
+      "options": ["It matches, because both are floats", "It does not match: the sum is not exactly 0.3", "match refuses float arms outright"],
+      "answer": 1,
+      "why": "match uses ===, and 0.1 + 0.2 stores as 0.30000000000000004, so the arm is skipped and the value falls to default. Round before matching."
+    }
+  ],
+  "exercise": {
+    "brief": "Print one line per day from 1 to 7, in the form 1 => Monday up to 7 => Sunday. Use a for loop and match, with a default arm that reads Invalid input.",
+    "starter": "<?php\n\n// for 1 to 7, print \"<day> => <name>\"\n",
+    "hint": "Build the line with echo $day, \" => \", match ($day) { ... }, \"\\n\"; — the match arms hold the day names.",
+    "checks": [
+      { "kind": "stdoutLines", "value": 7 },
+      { "kind": "outputContains", "value": "1 => Monday" },
+      { "kind": "outputContains", "value": "7 => Sunday" }
+    ],
+    "solution": "<?php\n\nfor ($day = 1; $day <= 7; $day++) {\n    echo $day, \" => \", match ($day) {\n        1 => \"Monday\",\n        2 => \"Tuesday\",\n        3 => \"Wednesday\",\n        4 => \"Thursday\",\n        5 => \"Friday\",\n        6 => \"Saturday\",\n        7 => \"Sunday\",\n        default => \"Invalid input\",\n    }, \"\\n\";\n}\n"
+  },
+  "docs": [
+    { "label": "PHP manual · match", "href": "control-structures.match.php" },
+    { "label": "PHP manual · if", "href": "control-structures.if.php" },
+    { "label": "PHP manual · for", "href": "control-structures.for.php" }
+  ]
+}

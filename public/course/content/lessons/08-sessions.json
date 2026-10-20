@@ -1,0 +1,111 @@
+{
+  "id": "08-sessions",
+  "title": "State between requests",
+  "minutes": 11,
+  "summary": "HTTP forgets between requests; a session is how PHP remembers the visitor.",
+  "keywords": ["session_start", "$_SESSION", "cookies", "state", "session_destroy"],
+  "blocks": [
+    {
+      "type": "prose",
+      "html": "<p>HTTP has no memory. Every request arrives on its own, carrying no trace of the one before it, and every PHP variable you created last time died when that script finished. The next request starts with an empty world.</p><p>That is not a bug to work around; it is the design. So a page that needs to remember the visitor must store the data somewhere outside the request, and pick it up again next time.</p>"
+    },
+    {
+      "type": "diagram",
+      "title": "two requests, no memory",
+      "ascii": "  request 1                      request 2\n  GET /page.php  -->  [ PHP ]    GET /page.php  -->  [ PHP ]\n                        |                               |\n                     $count=1                        $count=1\n                        |                               |\n  \"1\"            <-----+          \"1\"            <-----+\n\n  Nothing carries over. Same answer every time."
+    },
+    {
+      "type": "code",
+      "title": "a variable that resets",
+      "request": { "method": "POST", "post": { "action": "hit" } },
+      "code": "<?php\n\n$count = 0;\n$count = $count + 1;\n\necho 'Count for this request: ', $count, \"\\n\";\necho 'Reload and it is 1 again. Every request starts here.', \"\\n\";\n",
+      "output": "Count for this request: 1\nReload and it is 1 again. Every request starts here."
+    },
+    {
+      "type": "prose",
+      "html": "<p><code>session_start()</code> is the exception you ask for. It either starts a new session or resumes the one this browser already has, and it makes <code>$_SESSION</code> available: an ordinary array whose contents are written to the server's storage when the request ends and read back at the start of the next one.</p><p>Call it once, at the top of the script, before anything is printed.</p>"
+    },
+    {
+      "type": "code",
+      "title": "first visit: initialize the value",
+      "request": { "method": "GET", "get": {} },
+      "code": "<?php\n\nsession_start();\n\nif (!isset($_SESSION['balance'])) {\n    $_SESSION['balance'] = 5000.00;\n    echo 'First visit: balance initialized.', \"\\n\";\n}\n\necho 'Balance: ', number_format($_SESSION['balance'], 2), \"\\n\";\n",
+      "output": "First visit: balance initialized.\nBalance: 5,000.00"
+    },
+    {
+      "type": "code",
+      "title": "the next request sees the same array",
+      "request": { "method": "POST", "post": { "action": "hit" }, "session": { "balance": 5000 } },
+      "code": "<?php\n\n// A real page opens with session_start(). The runner already opened this\n// session and refilled $_SESSION from the previous request.\n\nif (!isset($_SESSION['balance'])) {\n    $_SESSION['balance'] = 5000.00;\n    echo 'First visit: balance initialized.', \"\\n\";\n} else {\n    echo 'Session found: the balance came back by itself.', \"\\n\";\n}\n\necho 'Balance: ', number_format($_SESSION['balance'], 2), \"\\n\";\n",
+      "output": "Session found: the balance came back by itself.\nBalance: 5,000.00"
+    },
+    {
+      "type": "diagram",
+      "title": "how the browser is recognized",
+      "ascii": "  browser                                server\n\n  Set-Cookie: PHPSESSID=8f2c  <-----  session_start()\n\n  GET /page.php\n  Cookie: PHPSESSID=8f2c     ----->  session_start()\n                                       |\n                                       v\n                                     /tmp/sess_8f2c\n                                     balance|d:3500;\n\n  The id links them. The data never leaves the server."
+    },
+    {
+      "type": "prose",
+      "html": "<p>Read it like any array, and write to it like any array. The value you assign is what the next request will find. That is the whole mechanism behind the ATM page in this project: the balance lives in <code>$_SESSION</code>, so it survives the click from verify to withdraw, and it is still there tomorrow.</p>"
+    },
+    {
+      "type": "code",
+      "title": "the ATM balance, across requests",
+      "request": { "method": "POST", "post": { "pin": "1234", "amount": "1500", "action": "withdraw" }, "session": { "balance": 5000 } },
+      "code": "<?php\n\nif (!isset($_SESSION['balance'])) {\n    $_SESSION['balance'] = 5000.00;\n}\n\n$balance = $_SESSION['balance'];\n$amount = (float)($_POST['amount'] ?? 0);\n$message = '';\n\nif (($_POST['action'] ?? '') === 'withdraw') {\n    if ($amount < 100) {\n        $message = 'Please enter a valid withdrawal amount minimum of 100.';\n    } elseif ($amount > $balance) {\n        $message = 'Insufficient Funds!';\n    } else {\n        $_SESSION['balance'] = $balance - $amount;\n        $message = 'Withdrawal Successful!';\n    }\n}\n\necho $message, \"\\n\";\necho 'Remaining Balance: ', number_format($_SESSION['balance'], 2), \"\\n\";\necho 'Next request will start from that number.', \"\\n\";\n",
+      "output": "Withdrawal Successful!\nRemaining Balance: 3,500.00\nNext request will start from that number."
+    },
+    {
+      "type": "prose",
+      "html": "<p>To end a session: clear the array, then destroy it. <code>session_destroy()</code> deletes the server's copy, but it deliberately leaves <code>$_SESSION</code> alone for the rest of this request — so assign <code>$_SESSION = []</code> first if you want the code below to see an empty session.</p>"
+    },
+    {
+      "type": "code",
+      "title": "logging out",
+      "request": { "method": "POST", "post": { "action": "logout" }, "session": { "balance": 3500 } },
+      "code": "<?php\n\n$_SESSION = [];       // drop this request's copy\nsession_destroy();    // delete what the server stored\n\necho isset($_SESSION['balance']) ? 'Balance still in memory' : 'Session cleared', \"\\n\";\necho 'The next visit starts from a first visit again.', \"\\n\";\n",
+      "output": "Session cleared\nThe next visit starts from a first visit again."
+    },
+    {
+      "type": "callout",
+      "tone": "warn",
+      "html": "<p>Forget <code>session_start()</code> and <code>$_SESSION</code> does not exist: you get <code>Warning: Undefined variable $_SESSION</code>, and anything you assign is lost when the request ends. Also remember what a session is not: it is per-visitor state, not storage. Prices, PINs, and permissions belong on the server side of your validation, and a value read out of <code>$_SESSION</code> still has to be checked like any other input.</p>"
+    }
+  ],
+  "quiz": [
+    {
+      "q": "Why is a plain variable from the last request gone now?",
+      "options": ["PHP deletes variables on a timer", "Variables live for one request; each request starts fresh", "The browser clears the server's memory"],
+      "answer": 1,
+      "why": "A request is a complete, isolated run. Data that must outlive it goes to a session, a file, or a database."
+    },
+    {
+      "q": "Which call makes $_SESSION available in a page?",
+      "options": ["session_destroy()", "session_start()", "$_SESSION = [];"],
+      "answer": 1,
+      "why": "session_start() creates or resumes the session and binds $_SESSION to it. Assigning to $_SESSION without it only creates a normal variable."
+    },
+    {
+      "q": "How does the server know which stored session belongs to this browser?",
+      "options": ["The balance is stored in a cookie", "The browser sends a session id cookie, and the server looks up the matching file", "The server keeps the browser's IP address"],
+      "answer": 1,
+      "why": "session_start() sends a cookie holding only an id. The data stays on the server, keyed by that id."
+    }
+  ],
+  "exercise": {
+    "brief": "The session already holds balance. Read it, defaulting to 5000.00 when the key is missing. When the posted action is deposit and the amount is greater than zero, add the amount and store the new balance. Then print Balance: followed by number_format($balance, 2).",
+    "starter": "<?php\n\n// $_SESSION is already filled for this request\n$balance = $_SESSION['balance'] ?? 5000.00;\n$amount = (float)($_POST['amount'] ?? 0);\n\n// update and print\n",
+    "hint": "Compare the action with ($_POST['action'] ?? '') === 'deposit'. Adding: $balance = $balance + $amount; then $_SESSION['balance'] = $balance; before the echo.",
+    "request": { "method": "POST", "post": { "action": "deposit", "amount": "750" }, "session": { "balance": 5000 } },
+    "checks": [
+      { "kind": "stdoutLines", "value": 1 },
+      { "kind": "outputContains", "value": "Balance: 5,750.00" }
+    ],
+    "solution": "<?php\n\n$balance = $_SESSION['balance'] ?? 5000.00;\n$amount = (float)($_POST['amount'] ?? 0);\n\nif (($_POST['action'] ?? '') === 'deposit' && $amount > 0) {\n    $balance = $balance + $amount;\n    $_SESSION['balance'] = $balance;\n}\n\necho 'Balance: ', number_format($balance, 2), \"\\n\";\n"
+  },
+  "docs": [
+    { "label": "PHP manual · Basic usage of sessions", "href": "session.examples.basic.php" },
+    { "label": "PHP manual · $_SESSION", "href": "reserved.variables.session.php" },
+    { "label": "PHP manual · session_destroy()", "href": "function.session-destroy.php" }
+  ]
+}

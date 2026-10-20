@@ -1,0 +1,52 @@
+{
+  "title": "PHP, hands on",
+  "intro": "Fourteen short chapters that take you from your first echo to classes, sessions, and a real project layout. Every example runs on the PHP 8.4 in this project: press Run and the page shows you what the interpreter actually did, including simulated form submissions and sessions.",
+  "modules": [
+    {
+      "id": "first-steps",
+      "numeral": "01",
+      "title": "First steps",
+      "blurb": "What the server does with your file, and how values live in it.",
+      "lessons": ["01-hello", "02-variables"]
+    },
+    {
+      "id": "data-and-flow",
+      "numeral": "02",
+      "title": "Data and flow",
+      "blurb": "Types that bite, branches, loops, and arrays.",
+      "lessons": ["03-types", "04-flow", "05-arrays"]
+    },
+    {
+      "id": "requests",
+      "numeral": "03",
+      "title": "Functions and requests",
+      "blurb": "Your own functions, then the HTTP request that carries the data.",
+      "lessons": ["06-functions", "07-forms", "08-sessions"]
+    },
+    {
+      "id": "objects",
+      "numeral": "04",
+      "title": "Objects",
+      "blurb": "Classes, methods, inheritance, and enums.",
+      "lessons": ["09-classes", "10-methods", "11-inheritance", "12-enums"]
+    },
+    {
+      "id": "project",
+      "numeral": "05",
+      "title": "A real project",
+      "blurb": "Failures handled properly, then Composer, namespaces, and tests.",
+      "lessons": ["13-errors", "14-project"]
+    }
+  ],
+  "afterword": {
+    "title": "Keep going",
+    "body": "You now know enough PHP to read the project you are standing in. Open the four exercise pages in this repository, change them, break them. Then read the manual pages linked from each chapter, and the PHP fig standards when you start sharing code.",
+    "links": [
+      { "label": "PHP manual", "href": "index.php", "note": "the language and its extensions" },
+      { "label": "Language reference", "href": "langref.php", "note": "the full syntax" },
+      { "label": "Function reference", "href": "funcref.php", "note": "what is already built in" },
+      { "label": "PSR standards", "href": "https://www.php-fig.org/psr/", "note": "shared conventions" },
+      { "label": "Composer", "href": "https://getcomposer.org/doc/", "note": "dependencies and autoloading" }
+    ]
+  }
+}

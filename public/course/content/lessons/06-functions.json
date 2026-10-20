@@ -1,0 +1,106 @@
+{
+  "id": "06-functions",
+  "title": "Functions",
+  "minutes": 10,
+  "summary": "Declare functions with typed parameters and return types, and see what scope means.",
+  "keywords": ["functions", "parameters", "return types", "scope", "closures"],
+  "blocks": [
+    {
+      "type": "prose",
+      "html": "<p>A function is a named piece of work you call by name as often as you like. PHP ships with thousands of them — <code>count()</code>, <code>strlen()</code>, <code>number_format()</code> — and you declare your own with one keyword.</p><p>Here is <code>isEven()</code> from <code>example.php</code> in this project. Read the signature twice: it takes an <code>int</code> and promises a <code>bool</code>.</p>"
+    },
+    {
+      "type": "code",
+      "title": "isEven() from example.php",
+      "code": "<?php\n\nfunction isEven(int $number): bool\n{\n    return $number % 2 === 0;\n}\n\nforeach ([7, 8] as $num) {\n    echo $num, ' is even: ', (isEven($num) ? 'true' : 'false'), \"\\n\";\n}\n",
+      "output": "7 is even: false\n8 is even: true"
+    },
+    {
+      "type": "prose",
+      "html": "<p><code>function</code> names it. <code>int $number</code> is a parameter with a type. <code>: bool</code> is the return type. PHP checks both: hand the function something that is not an integer and the call throws <code>TypeError</code>; hand back something that is not a boolean and the <code>return</code> throws.</p><p><code>return</code> also ends that call — everything after it in the body is skipped, which is how a function bails out early. A trailing parameter can carry a default value; defaults must come last in the list.</p>"
+    },
+    {
+      "type": "code",
+      "title": "early return, and a default parameter",
+      "code": "<?php\n\nfunction getDayName(int $day, string $fallback = 'Unknown day'): string\n{\n    if ($day === 1) {\n        return 'Monday';\n    }\n\n    if ($day === 2) {\n        return 'Tuesday';\n    }\n\n    return $fallback;\n}\n\nfor ($i = 1; $i <= 3; $i++) {\n    echo getDayName($i), \"\\n\";\n}\n\necho getDayName(9), \"\\n\";\necho getDayName(9, 'No such day'), \"\\n\";\n",
+      "output": "Monday\nTuesday\nUnknown day\nUnknown day\nNo such day"
+    },
+    {
+      "type": "code",
+      "title": "a nullable array, a void function, an int",
+      "code": "<?php\n\n$students = [\n    ['Student ID' => 1001, 'Student Name' => 'Juan Dela Cruz'],\n    ['Student ID' => 1002, 'Student Name' => 'Maria Santos'],\n];\n\n// an array, or null when nothing matches\nfunction findStudentById(array $students, int $id): ?array\n{\n    foreach ($students as $student) {\n        if ($student['Student ID'] === $id) {\n            return $student;\n        }\n    }\n\n    return null;\n}\n\n// returns nothing at all: the printing is the whole job\nfunction showStudent(?array $student): void\n{\n    if ($student === null) {\n        echo 'Student Not Found', \"\\n\";\n        return;\n    }\n\n    echo $student['Student ID'], ' - ', $student['Student Name'], \"\\n\";\n}\n\nfunction countStudents(array $students): int\n{\n    return count($students);\n}\n\nshowStudent(findStudentById($students, 1002));\nshowStudent(findStudentById($students, 9999));\necho countStudents($students), ' students', \"\\n\";\n",
+      "output": "1002 - Maria Santos\nStudent Not Found\n2 students"
+    },
+    {
+      "type": "callout",
+      "tone": "warn",
+      "html": "<p><code>?array</code> means an array or <code>null</code>: the question mark makes the type nullable, so <code>return null;</code> is legal there. <code>: void</code> means the function returns nothing; it exists for its side effect. This is why we write the types down — return nothing from a function declared <code>: string</code> and PHP throws a <code>TypeError</code> at that instant, not a wrong value three screens later.</p>"
+    },
+    {
+      "type": "code",
+      "title": "the call comes first",
+      "code": "<?php\n\n// The declaration is below the call, and this still works.\necho (isEven(4) ? 'four is even' : 'four is odd'), \"\\n\";\n\nfunction isEven(int $number): bool\n{\n    return $number % 2 === 0;\n}\n",
+      "output": "four is even"
+    },
+    {
+      "type": "prose",
+      "html": "<p>PHP compiles the whole file before it runs a single line, so an unconditional top-level <code>function</code> declaration is available everywhere in that file — even above the definition. Two limits: the declaration must not sit inside an <code>if</code> or inside another function, and it only helps in a file that has already been included.</p>"
+    },
+    {
+      "type": "code",
+      "title": "a function body is its own scope",
+      "code": "<?php\n\n$balance = 5000.00;\n\nfunction seesBalance(): string\n{\n    // $balance exists out there, but a function body cannot see it.\n    return isset($balance) ? 'yes' : 'no';\n}\n\nfunction withdrawFromGlobal(float $amount): float\n{\n    global $balance; // the explicit door to the outside\n\n    return $balance - $amount;\n}\n\necho 'can the function see $balance: ', seesBalance(), \"\\n\";\necho 'with global: ', number_format(withdrawFromGlobal(1500), 2), \"\\n\";\n",
+      "output": "can the function see $balance: no\nwith global: 3,500.00"
+    },
+    {
+      "type": "prose",
+      "html": "<p>That is the surprise for everyone arriving from a language with file-wide locals: a function body is a separate scope. Outer variables are invisible unless you pass them in as parameters or import them with <code>global</code>. With neither, PHP treats the name as a fresh local and warns <code>Warning: Undefined variable $balance</code>.</p><p>Prefer parameters and return values. <code>global</code> works, but it hides the dependency: a reader cannot tell what the function touches from its signature.</p>"
+    },
+    {
+      "type": "code",
+      "title": "arrow functions and closures",
+      "code": "<?php\n\n$numbers = [1, 2, 3, 4];\n$factor = 3;\n\n$doubled = array_map(fn($x) => $x * 2, $numbers);\necho implode(', ', $doubled), \"\\n\";\n\n// fn captures $factor from the enclosing scope automatically\n$scaled = array_map(fn($x) => $x * $factor, $numbers);\necho implode(', ', $scaled), \"\\n\";\n\n// an anonymous function has to say what it uses\n$addFee = function (float $amount) use ($factor) {\n    return $amount + $factor;\n};\n\necho number_format($addFee(997.00), 2), \"\\n\";\n",
+      "output": "2, 4, 6, 8\n3, 6, 9, 12\n1,000.00"
+    },
+    {
+      "type": "prose",
+      "html": "<p><code>fn($x) => $x * 2</code> is an arrow function: one expression, and the value of that expression is returned — no <code>return</code>, no braces. It captures the enclosing variables it mentions, by value, without being asked.</p><p>An anonymous <code>function ()</code> does not do that. It sees nothing from the outside except what you list after <code>use</code>. Both capture by value: the closure keeps the value the variable had when it was defined.</p>"
+    }
+  ],
+  "quiz": [
+    {
+      "q": "What does the return type ?array promise?",
+      "options": ["An array, never null", "An array, or null", "Any array-like value, such as a string"],
+      "answer": 1,
+      "why": "A leading ? marks the type nullable, so both array and null are legal returns. Returning anything else throws a TypeError."
+    },
+    {
+      "q": "A function is declared at the top level of a file, below the line that calls it. What happens?",
+      "options": ["Fatal error: the function does not exist yet", "The call works, because the file is compiled before it runs", "It works only if the function has no parameters"],
+      "answer": 1,
+      "why": "Unconditional top-level declarations are hoisted, so they are callable anywhere in that file. A declaration inside an if or another function is not."
+    },
+    {
+      "q": "Inside a function, what does $total hold when $total was set just before the call?",
+      "options": ["The outer value", "Nothing: it is a fresh local unless passed in or declared global", "A copy, but only for arrays"],
+      "answer": 1,
+      "why": "Each function body is its own scope. Reading an outer name without global gives a Warning: Undefined variable and null."
+    }
+  ],
+  "exercise": {
+    "brief": "Write a function discount(float $price, int $percent = 10): float that returns the price after removing percent. Then print two lines: discount(500) and discount(500, 25), each formatted with number_format($value, 2).",
+    "starter": "<?php\n\n// declare discount(), then print the two formatted results\n",
+    "hint": "The return value is $price - $price * $percent / 100. Echo with echo number_format(discount(500), 2), \"\\n\";",
+    "checks": [
+      { "kind": "stdoutLines", "value": 2 },
+      { "kind": "outputContains", "value": "450.00" },
+      { "kind": "outputContains", "value": "375.00" }
+    ],
+    "solution": "<?php\n\nfunction discount(float $price, int $percent = 10): float\n{\n    return $price - $price * $percent / 100;\n}\n\necho number_format(discount(500), 2), \"\\n\";\necho number_format(discount(500, 25), 2), \"\\n\";\n"
+  },
+  "docs": [
+    { "label": "PHP manual · User-defined functions", "href": "language.functions.user-defined.php" },
+    { "label": "PHP manual · Arrow functions", "href": "language.functions.arrow.php" },
+    { "label": "PHP manual · Variable scope", "href": "language.variables.scope.php" }
+  ]
+}

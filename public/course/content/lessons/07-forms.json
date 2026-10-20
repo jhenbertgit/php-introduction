@@ -1,0 +1,115 @@
+{
+  "id": "07-forms",
+  "title": "The request carries the data",
+  "minutes": 11,
+  "summary": "A form submission is an HTTP request: read $_GET and $_POST, validate, then escape.",
+  "keywords": ["forms", "$_POST", "$_GET", "REQUEST_METHOD", "validation", "htmlspecialchars"],
+  "blocks": [
+    {
+      "type": "prose",
+      "html": "<p>When a visitor submits a form, the browser sends an ordinary HTTP request whose fields are <code>name=value</code> pairs. The form's <code>method</code> decides where those pairs travel: <code>GET</code> appends them to the URL as a query string, <code>POST</code> puts them in the request body.</p><p>Use <code>POST</code> for anything private. A <code>GET</code> URL is kept in browser history, in server access logs, and in every proxy in between — a PIN in a query string is a PIN you have published.</p>"
+    },
+    {
+      "type": "diagram",
+      "title": "where the fields go",
+      "ascii": "  GET  /atm_withdrawal.php?pin=1234&action=verify\n       ^ one URL. Saved in history, logs, Referer.\n\n  POST /atm_withdrawal.php\n       action=verify&pin=1234\n       ^ the body. Not in the URL, not in the log line.\n\n  Same PHP file handles both. Only the method differs."
+    },
+    {
+      "type": "code",
+      "title": "which method arrived",
+      "request": { "method": "POST", "post": { "pin": "1234", "action": "verify" } },
+      "code": "<?php\n\nif ($_SERVER['REQUEST_METHOD'] === 'POST') {\n    echo 'This is a form submission.', \"\\n\";\n}\n\necho 'Method: ', $_SERVER['REQUEST_METHOD'], \"\\n\";\n",
+      "output": "This is a form submission.\nMethod: POST"
+    },
+    {
+      "type": "prose",
+      "html": "<p>PHP fills two arrays before your first line runs. <code>$_GET</code> holds the query string, <code>$_POST</code> holds the parsed body. Both are ordinary arrays of strings — a submitted <code>1234</code> arrives as the string <code>\"1234\"</code>, so cast before you compare numbers.</p><p>Neither array contains a key the browser did not send. Reading a key that is not there is the most common warning in PHP.</p>"
+    },
+    {
+      "type": "code",
+      "title": "a GET argument",
+      "request": { "method": "GET", "get": { "page": "2" } },
+      "code": "<?php\n\n$page = $_GET['page'] ?? '1';\n\necho 'Showing page ', $page, ' of the directory.', \"\\n\";\n",
+      "output": "Showing page 2 of the directory."
+    },
+    {
+      "type": "code",
+      "title": "the same script, nothing submitted",
+      "request": { "method": "GET", "get": { "page": "2" } },
+      "code": "<?php\n\n$pin = $_POST['pin'] ?? '(nothing sent)';\n$amount = $_POST['amount'] ?? '0';\n\necho 'pin: ', $pin, \"\\n\";\necho 'amount: ', $amount, \"\\n\";\necho 'fields in the body: ', count($_POST), \"\\n\";\n",
+      "output": "pin: (nothing sent)\namount: 0\nfields in the body: 0"
+    },
+    {
+      "type": "callout",
+      "tone": "warn",
+      "html": "<p>Drop the <code>??</code> and <code>$_POST['pin']</code> on a request without a pin gives <code>Warning: Undefined array key \"pin\"</code> and the value <code>null</code>. The page still renders, which is exactly why this warning survives so long in production. <code>??</code> or <code>isset()</code> is the two-character fix, and it forces you to decide what a missing field means.</p>"
+    },
+    {
+      "type": "prose",
+      "html": "<p>The ATM page in this project is one handler with two steps, both <code>POST</code> to the same file. The <code>action</code> field says which: <code>verify</code> checks the PIN and reveals the amount box, <code>withdraw</code> spends the money. Every field is cast to its type and then checked against a rule — the browser's <code>min</code>, <code>max</code>, and <code>required</code> attributes are advice, and advice can be skipped with a single curl command.</p>"
+    },
+    {
+      "type": "code",
+      "title": "step 1: verify the PIN",
+      "request": { "method": "POST", "post": { "pin": "1234", "action": "verify" } },
+      "code": "<?php\n\n$action = $_POST['action'] ?? '';\n$pin = (int)($_POST['pin'] ?? 0);\n$message = '';\n$isPinValid = false;\n\nif ($action === 'verify') {\n    if ($pin !== 1234) {\n        $message = 'Access Denied. Incorrect PIN.';\n    } else {\n        $isPinValid = true;\n        $message = 'PIN accepted. Enter an amount.';\n    }\n}\n\necho 'PIN valid: ', ($isPinValid ? 'yes' : 'no'), \"\\n\";\necho $message, \"\\n\";\n",
+      "output": "PIN valid: yes\nPIN accepted. Enter an amount."
+    },
+    {
+      "type": "code",
+      "title": "step 2: withdraw the amount",
+      "request": { "method": "POST", "post": { "pin": "1234", "amount": "1500", "action": "withdraw" } },
+      "code": "<?php\n\n$balance = 5000.00;\n$amount = (float)($_POST['amount'] ?? 0);\n$message = '';\n$withdrawn = null;\n\nif (($_POST['action'] ?? '') === 'withdraw') {\n    if ($amount < 100) {\n        $message = 'Please enter a valid withdrawal amount minimum of 100.';\n    } elseif ($amount > $balance) {\n        $message = 'Insufficient Funds!';\n    } else {\n        $balance = $balance - $amount;\n        $withdrawn = $amount;\n        $message = 'Withdrawal Successful!';\n    }\n}\n\necho $message, \"\\n\";\n\nif ($withdrawn !== null) {\n    echo 'Amount Withdrawn: ', number_format($withdrawn, 2), \"\\n\";\n    echo 'Remaining Balance: ', number_format($balance, 2), \"\\n\";\n}\n",
+      "output": "Withdrawal Successful!\nAmount Withdrawn: 1,500.00\nRemaining Balance: 3,500.00"
+    },
+    {
+      "type": "code",
+      "title": "echoing user input back",
+      "request": { "method": "POST", "post": { "pin": "<script>alert(1)</script>", "action": "verify" } },
+      "code": "<?php\n\n$pin = $_POST['pin'] ?? '';\n\necho '<input type=\"number\" name=\"pin\" value=\"', htmlspecialchars($pin), '\">', \"\\n\";\necho 'raw length: ', strlen($pin), \"\\n\";\n",
+      "output": "<input type=\"number\" name=\"pin\" value=\"&lt;script&gt;alert(1)&lt;/script&gt;\">\nraw length: 25"
+    },
+    {
+      "type": "callout",
+      "tone": "warn",
+      "html": "<p>Validation and escaping are different jobs. Validate on the way in — cast, range-check, reject. Escape on the way out — <code>htmlspecialchars()</code> turns <code>&lt;</code>, <code>&gt;</code>, <code>&amp;</code>, and quotes into entities so the browser shows the text instead of running it. Escape at the moment you print, not when you store, and pass the same raw value to <code>htmlspecialchars()</code> every time you echo it.</p>"
+    }
+  ],
+  "quiz": [
+    {
+      "q": "Where are the fields of a GET form submission?",
+      "options": ["In the URL query string", "In the request body", "In the session"],
+      "answer": 0,
+      "why": "GET appends name=value pairs to the URL. POST puts them in the body, which is why POST is the choice for a PIN."
+    },
+    {
+      "q": "The handler reads $_POST['pin'] and the request arrived without a pin. What happens?",
+      "options": ["A fatal error stops the page", "A warning about an undefined array key, and null is used", "The key is created with an empty string"],
+      "answer": 1,
+      "why": "PHP 8 emits Warning: Undefined array key, then evaluates the expression to null. The page keeps rendering, so use ?? to choose a default on purpose."
+    },
+    {
+      "q": "A visitor submits the name Bob<script> into a field you echo back. What keeps that harmless?",
+      "options": ["Casting the value with (string)", "htmlspecialchars() at the point you print it", "Saving the value to the session first"],
+      "answer": 1,
+      "why": "Escaping on output turns the angle brackets into entities, so the browser renders text. Casting does not remove markup."
+    }
+  ],
+  "exercise": {
+    "brief": "A form posts pin and amount to this script. Print PIN ok when the pin is 1234, otherwise PIN rejected. When the pin is correct and the amount is between 100 and 5000 inclusive, print Dispensed: followed by number_format($amount, 2); otherwise print Amount rejected.",
+    "starter": "<?php\n\n// $_POST is already filled from the submission\n$pin = (int)($_POST['pin'] ?? 0);\n$amount = (float)($_POST['amount'] ?? 0);\n\n// print the two lines\n",
+    "hint": "Keep the answer in a variable: $valid = $pin === 1234. Then echo ($valid ? 'PIN ok' : 'PIN rejected'), \"\\n\"; and use if ($valid && $amount >= 100 && $amount <= 5000).",
+    "request": { "method": "POST", "post": { "pin": "1234", "amount": "2500" } },
+    "checks": [
+      { "kind": "stdoutLines", "value": 2 },
+      { "kind": "outputContains", "value": "PIN ok" },
+      { "kind": "outputContains", "value": "Dispensed: 2,500.00" }
+    ],
+    "solution": "<?php\n\n$pin = (int)($_POST['pin'] ?? 0);\n$amount = (float)($_POST['amount'] ?? 0);\n\n$valid = $pin === 1234;\n\necho ($valid ? 'PIN ok' : 'PIN rejected'), \"\\n\";\n\nif ($valid && $amount >= 100 && $amount <= 5000) {\n    echo 'Dispensed: ', number_format($amount, 2), \"\\n\";\n} else {\n    echo 'Amount rejected', \"\\n\";\n}\n"
+  },
+  "docs": [
+    { "label": "PHP manual · $_POST", "href": "reserved.variables.post.php" },
+    { "label": "PHP manual · $_GET", "href": "reserved.variables.get.php" },
+    { "label": "PHP manual · htmlspecialchars()", "href": "function.htmlspecialchars.php" }
+  ]
+}

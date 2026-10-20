@@ -1,0 +1,175 @@
+{
+  "intro": "The manual pages this course keeps sending you to, plus the references you will want once the chapters are done. Everything opens on php.net, so you can read it beside the chapter you are on.",
+  "groups": [
+    {
+      "title": "Start here",
+      "items": [
+        {
+          "label": "Getting started",
+          "href": "getting-started.php",
+          "note": "What PHP is for, and what a first page looks like.",
+          "tag": "read first"
+        },
+        {
+          "label": "Language reference",
+          "href": "langref.php",
+          "note": "The full syntax, chapter by chapter. This is where the course's chapters point.",
+          "tag": "the rules"
+        },
+        {
+          "label": "Function reference",
+          "href": "funcref.php",
+          "note": "Everything already built in, grouped by extension.",
+          "tag": "daily reference"
+        }
+      ]
+    },
+    {
+      "title": "The language",
+      "items": [
+        {
+          "label": "Variables and constants",
+          "href": "language.variables.php",
+          "note": "The $ sigil, scope, variable variables, constants."
+        },
+        {
+          "label": "Types",
+          "href": "language.types.php",
+          "note": "int, float, string, bool, array, null, objects, and how PHP converts between them."
+        },
+        {
+          "label": "Operators",
+          "href": "language.operators.php",
+          "note": "Including the comparison table that explains == versus ===."
+        },
+        {
+          "label": "Control structures",
+          "href": "language.control-structures.php",
+          "note": "if, loops, match, and the alternative syntax used inside templates."
+        },
+        {
+          "label": "Functions",
+          "href": "language.functions.php",
+          "note": "User-defined functions, arguments, return types, first-class callables."
+        },
+        {
+          "label": "Arrays",
+          "href": "language.types.array.php",
+          "note": "The type everything in PHP is built from."
+        },
+        {
+          "label": "Strings",
+          "href": "language.types.string.php",
+          "note": "Interpolation, heredoc, and the string functions."
+        }
+      ]
+    },
+    {
+      "title": "The request",
+      "items": [
+        {
+          "label": "Variables from external sources",
+          "href": "language.variables.external.php",
+          "note": "How form fields, query strings and cookies arrive as arrays.",
+          "tag": "chapters 7 and 8"
+        },
+        {
+          "label": "$_POST",
+          "href": "reserved.variables.post.php",
+          "note": "Data sent in the request body."
+        },
+        {
+          "label": "$_GET",
+          "href": "reserved.variables.get.php",
+          "note": "Data sent in the query string."
+        },
+        {
+          "label": "Sessions",
+          "href": "book.session.php",
+          "note": "The introduction to sessions, and how the session id travels."
+        },
+        {
+          "label": "session_start()",
+          "href": "function.session-start.php",
+          "note": "Create or resume the session, with the configuration options that matter."
+        },
+        {
+          "label": "htmlspecialchars()",
+          "href": "function.htmlspecialchars.php",
+          "note": "The one function to call before echoing user input into HTML."
+        }
+      ]
+    },
+    {
+      "title": "Objects",
+      "items": [
+        {
+          "label": "Classes and objects",
+          "href": "language.oop5.basic.php",
+          "note": "The basics: classes, properties, methods, the -> operator.",
+          "tag": "chapter 9"
+        },
+        {
+          "label": "Constructors and property promotion",
+          "href": "language.oop5.decon.php",
+          "note": "How GradeCalculator's constructor sets four readonly properties in one line."
+        },
+        {
+          "label": "Visibility",
+          "href": "language.oop5.visibility.php",
+          "note": "public, protected, private, and what readonly adds."
+        },
+        {
+          "label": "Inheritance",
+          "href": "language.oop5.inheritance.php",
+          "note": "extends, parent::, abstract classes and methods."
+        },
+        {
+          "label": "Interfaces",
+          "href": "language.oop5.interfaces.php",
+          "note": "The contract a class promises to honour."
+        },
+        {
+          "label": "Traits",
+          "href": "language.oop5.traits.php",
+          "note": "Shared method bodies without a class hierarchy."
+        },
+        {
+          "label": "Enumerations",
+          "href": "language.enumerations.php",
+          "note": "Typed choices instead of magic strings."
+        },
+        {
+          "label": "Exceptions",
+          "href": "language.exceptions.php",
+          "note": "throw, try, catch, finally, and extending Exception."
+        }
+      ]
+    },
+    {
+      "title": "The toolchain",
+      "items": [
+        {
+          "label": "Autoloading (PSR-4)",
+          "href": "language.oop5.autoload.php",
+          "note": "How App\\ maps to src/ without a single require line."
+        },
+        {
+          "label": "Namespaces",
+          "href": "language.namespaces.php",
+          "note": "The syntax behind use and the leading backslash."
+        },
+        {
+          "label": "Composer",  
+          "href": "https://getcomposer.org/doc/",
+          "note": "Dependencies, autoloading and scripts — not part of the manual."
+        },
+        {
+          "label": "PHP-FIG standards",
+          "href": "https://www.php-fig.org/psr/",
+          "note": "The PSR documents this project follows."
+        }
+      ]
+    }
+  ]
+}

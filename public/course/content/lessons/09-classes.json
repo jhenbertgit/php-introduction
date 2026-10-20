@@ -1,0 +1,105 @@
+{
+  "id": "09-classes",
+  "title": "Classes and objects",
+  "minutes": 11,
+  "summary": "A class is a blueprint: typed properties, constructors, and constants in one object.",
+  "keywords": ["class", "object", "new", "constructor", "property promotion", "readonly", "class constants"],
+  "blocks": [
+    {
+      "type": "prose",
+      "html": "<p>A <strong>class</strong> is a blueprint. It lists the data one thing holds, and the names that data goes by. An <strong>object</strong> is one thing built from that blueprint, carrying its own copy of every property.</p><p>This chapter and the two after it build up to <code>src/GradeCalculator.php</code>, the class that powers the grade calculator page. We start much smaller.</p>"
+    },
+    {
+      "type": "code",
+      "title": "score.php",
+      "code": "<?php\n\nclass Score\n{\n    public string $label;\n    public float $value;\n}\n\n$quiz = new Score();\n$quiz->label = 'Quiz';\n$quiz->value = 88.5;\n\necho $quiz->label, ': ', $quiz->value, \"\\n\";\n\n$final = new Score();\n$final->label = 'Final';\n$final->value = 92.0;\n\necho $final->label, ': ', $final->value, \"\\n\";\necho $quiz->label, ' is still ', $quiz->value, \"\\n\";\n",
+      "output": "Quiz: 88.5\nFinal: 92\nQuiz is still 88.5"
+    },
+    {
+      "type": "diagram",
+      "title": "one blueprint, two objects",
+      "ascii": "  class Score (the blueprint)\n    label: string\n    value: float\n\n  new Score()          new Score()\n  ------------         ------------\n  label = 'Quiz'       label = 'Final'\n  value = 88.5         value = 92.0\n\n  Two objects, two independent sets of values."
+    },
+    {
+      "type": "prose",
+      "html": "<p><code>public string $label;</code> declares a property <em>with a type</em>. PHP checks every write against it: in the default coercive mode a compatible value such as <code>42</code> is converted to <code>\"42\"</code>, and in strict mode a mismatch is a <code>TypeError</code>.</p><p>Because the type is declared, PHP also refuses to read the property before anything is assigned: an uninitialized typed property throws an <code>Error</code>, instead of quietly handing you <code>null</code>.</p><p><code>new Score()</code> builds the object and <code>-&gt;</code> reaches inside it. Writing creates nothing: it fills a slot that already exists.</p>"
+    },
+    {
+      "type": "callout",
+      "tone": "warn",
+      "html": "<p>Assigning a property the class never declared used to silently invent it. Since PHP 8.2 that is deprecated: <code>$quiz-&gt;bonus = 5;</code> raises a deprecation notice. <code>#[AllowDynamicProperties]</code> exists only to keep old code quiet, and you do not need it here. Declare the property.</p>"
+    },
+    {
+      "type": "code",
+      "title": "a constructor does the setting up",
+      "code": "<?php\n\nclass Score\n{\n    public string $label;\n    public float $value;\n\n    public function __construct(string $label, float $value)\n    {\n        $this->label = $label;\n        $this->value = $value;\n    }\n}\n\n$quiz = new Score('Quiz', 88.5);\n$final = new Score('Final', 92.0);\n\necho $quiz->label, ': ', $quiz->value, \"\\n\";\necho $final->label, ': ', $final->value, \"\\n\";\n",
+      "output": "Quiz: 88.5\nFinal: 92"
+    },
+    {
+      "type": "prose",
+      "html": "<p><code>__construct()</code> runs once, when <code>new</code> runs, with whatever you pass in the parentheses. Its job is to leave every property set, so no object is ever half-built.</p><p>PHP 8 shortens that ceremony. Put a visibility keyword on the constructor parameter and it becomes a property, assigned for you. Add <code>readonly</code> and the property can be written once, from inside the class, and never again.</p>"
+    },
+    {
+      "type": "code",
+      "title": "constructor property promotion",
+      "code": "<?php\n\nclass Score\n{\n    public function __construct(\n        public readonly string $label,\n        public readonly float $value,\n    ) {}\n}\n\n$quiz = new Score('Quiz', 88.5);\n\necho $quiz->label, ': ', $quiz->value, \"\\n\";\n\n// $quiz->value = 90.0;\n// Error: Cannot modify readonly property Score::$value\n",
+      "output": "Quiz: 88.5"
+    },
+    {
+      "type": "prose",
+      "html": "<p>Some values belong to the class rather than to any one object: the four weights never differ between calculators. Those are <strong>class constants</strong>, declared with <code>const</code> and read with <code>::</code>. No object is needed, and <code>::</code> is also how you call a method that does not need one.</p><p>The real calculator keeps its weights as <code>private const WEIGHTS</code>. A <code>private</code> member can only be read from inside the class body: the outside world asks <code>getWeightedScores()</code> instead, and never learns how the numbers are stored. That is the whole point, and the next chapter owns the detail.</p>"
+    },
+    {
+      "type": "code",
+      "title": ":: for the class, -> for the object",
+      "code": "<?php\n\nclass Score\n{\n    public const MAX = 100;\n\n    public function __construct(\n        public readonly string $label,\n        public readonly float $value,\n    ) {}\n}\n\necho 'top of the scale: ', Score::MAX, \"\\n\";\necho 'the label of one object: ', (new Score('Quiz', 88.5))->label, \"\\n\";\n",
+      "output": "top of the scale: 100\nthe label of one object: Quiz"
+    },
+    {
+      "type": "code",
+      "title": "src/GradeCalculator.php, the top of the class",
+      "runnable": false,
+      "code": "<?php\n\nclass GradeCalculator\n{\n    private const WEIGHTS = [\n        'quiz' => 0.20,\n        'assignment' => 0.20,\n        'midterm' => 0.25,\n        'final' => 0.35,\n    ];\n\n    public function __construct(\n        private readonly float $quiz,\n        private readonly float $assignment,\n        private readonly float $midterm,\n        private readonly float $final,\n    ) {}\n}\n"
+    },
+    {
+      "type": "code",
+      "title": "build the real one",
+      "code": "<?php\n\nuse App\\GradeCalculator;\n\n$calculator = new GradeCalculator(90.0, 92.0, 88.0, 95.0);\n\nprint_r($calculator);\n",
+      "output": "App\\GradeCalculator Object\n(\n    [quiz:App\\GradeCalculator:private] => 90\n    [assignment:App\\GradeCalculator:private] => 92\n    [midterm:App\\GradeCalculator:private] => 88\n    [final:App\\GradeCalculator:private] => 95\n)"
+    }
+  ],
+  "quiz": [
+    {
+      "q": "What does new Score() hand back?",
+      "options": ["A copy of the class source", "One object with its own properties", "The class constant MAX"],
+      "answer": 1,
+      "why": "The class is the blueprint; new builds one object from it. Two objects from the same class hold separate values."
+    },
+    {
+      "q": "A property is declared as promoted and readonly. Which statement is true?",
+      "options": ["It can be written many times from anywhere", "It is written once, from inside the class, and never again", "It is shared by every object of the class"],
+      "answer": 1,
+      "why": "The visibility keyword on the parameter makes it a property, and readonly allows exactly one write, which the promoted constructor performs. Values shared by all objects are class constants."
+    },
+    {
+      "q": "You write $score->bonus = 5 but Score declares no $bonus. What does PHP 8.4 do?",
+      "options": ["Creates the property silently", "Stops with a fatal error", "Raises a deprecation notice"],
+      "answer": 2,
+      "why": "Dynamic properties were deprecated in PHP 8.2. The property is still created, but the notice tells you to declare it, which is what #[AllowDynamicProperties] only papers over."
+    }
+  ],
+  "exercise": {
+    "brief": "Write a class Course with a promoted readonly string $name and int $credits, plus a public constant PASSING set to 75. Build the course PHP with 3 credits and print one line: PHP/3/75.",
+    "starter": "<?php\n\n// class Course, then one object, then one line\n",
+    "hint": "Promotion keeps the whole constructor in the signature: public function __construct(public readonly string $name, public readonly int $credits) {}. A constant is read through the class: Course::PASSING.",
+    "checks": [
+      { "kind": "outputEquals", "value": "PHP/3/75" }
+    ],
+    "solution": "<?php\n\nclass Course\n{\n    public const PASSING = 75;\n\n    public function __construct(\n        public readonly string $name,\n        public readonly int $credits,\n    ) {}\n}\n\n$course = new Course('PHP', 3);\n\necho $course->name, '/', $course->credits, '/', Course::PASSING, \"\\n\";\n"
+  },
+  "docs": [
+    { "label": "PHP manual · Classes and objects: the basics", "href": "language.oop5.basic.php" },
+    { "label": "PHP manual · Constructors and destructors", "href": "language.oop5.decon.php" },
+    { "label": "PHP manual · Class constants", "href": "language.oop5.constants.php" }
+  ]
+}

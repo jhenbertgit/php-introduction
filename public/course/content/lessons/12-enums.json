@@ -1,0 +1,105 @@
+{
+  "id": "12-enums",
+  "title": "Enums and the match that reads them",
+  "minutes": 10,
+  "summary": "Declare the letters once as an enum, then let match map each case to a remark.",
+  "keywords": ["enum", "backed enum", "match", "cases", "tryFrom"],
+  "blocks": [
+    {
+      "type": "prose",
+      "html": "<p><code>src/GradeCalculator.php</code> keeps its letter grades in a table of plain strings: <code>['min' =&gt; 98, 'grade' =&gt; 'A+']</code>, and so on down to <code>'D'</code>. It works. It also has no idea which letters exist, so a typo in that table ships a wrong letter grade to the page and raises no error anywhere.</p>"
+    },
+    {
+      "type": "code",
+      "title": "a string is any string",
+      "code": "<?php\n\n// The letter is a string, so every string is a legal letter grade.\nfunction remarkFor(string $letter): string\n{\n    if ($letter === 'A') {\n        return 'Excellent';\n    }\n\n    if ($letter === 'B') {\n        return 'Good';\n    }\n\n    return 'Unknown letter';\n}\n\necho remarkFor('A'), \"\\n\";\necho remarkFor('a'), \"\\n\";\n",
+      "output": "Excellent\nUnknown letter"
+    },
+    {
+      "type": "prose",
+      "html": "<p><code>'a'</code> is not <code>'A'</code>, so the second call lands in the fallback and nobody hears about it. The type says <code>string</code>, and every string qualifies.</p><p>An <code>enum</code> declares the whole set once. You list the cases, and the enum name becomes a real type: a parameter typed <code>Suit</code> accepts <code>Suit::Hearts</code> and nothing else. Each case is one object — there is exactly one <code>Suit::Hearts</code> in the program — so <code>===</code> against a case is always safe.</p>"
+    },
+    {
+      "type": "code",
+      "title": "a pure enum",
+      "code": "<?php\n\nenum Suit\n{\n    case Hearts;\n    case Spades;\n    case Clubs;\n}\n\n$card = Suit::Hearts;\n\necho $card->name, \"\\n\";\necho count(Suit::cases()), \" cases\\n\";\nvar_dump($card === Suit::Hearts);\n",
+      "output": "Hearts\n3 cases\nbool(true)"
+    },
+    {
+      "type": "prose",
+      "html": "<p>That is a <em>pure</em> enum: the cases carry nothing but their names. A <em>backed</em> enum attaches a scalar to every case, which is what you store in a column or a form field: <code>enum Grade: string</code> with <code>case APlus = 'A+';</code>.</p><p><code>-&gt;value</code> reads the scalar, <code>Grade::from('A')</code> turns a stored value back into a case, <code>Grade::tryFrom('Z')</code> does the same but returns <code>null</code> instead of failing, and <code>Grade::cases()</code> lists every case in declaration order.</p>"
+    },
+    {
+      "type": "code",
+      "title": "backed enums, values, and lookups",
+      "code": "<?php\n\nenum Grade: string\n{\n    case APlus = 'A+';\n    case A = 'A';\n    case F = 'F';\n}\n\necho Grade::APlus->value, \"\\n\";\necho Grade::from('A')->name, \"\\n\";\n\n$missing = Grade::tryFrom('Z');\necho $missing === null ? 'no case for Z' : $missing->value, \"\\n\";\n\necho count(Grade::cases()), \" cases\\n\";\n",
+      "output": "A+\nA\nno case for Z\n3 cases"
+    },
+    {
+      "type": "callout",
+      "tone": "warn",
+      "html": "<p><code>Grade::from()</code> throws a <code>ValueError</code> when the value it is given has no case. Use <code>tryFrom()</code> plus a <code>null</code> check when the value came from a user, a form, or a database row you do not control. The next chapter is about what throwing means.</p>"
+    },
+    {
+      "type": "diagram",
+      "title": "the tier table, as cases",
+      "ascii": "score      case            band\n\n98 - 100   Grade::APlus    Excellent\n92 - 97    Grade::A        Excellent\n90 - 91    Grade::AMinus   Excellent\n88 - 89    Grade::BPlus    Good\n84 - 87    Grade::B        Good\n80 - 83    Grade::BMinus   Good\n77 - 79    Grade::CPlus    Fair\n73 - 76    Grade::C        Fair\n70 - 72    Grade::CMinus   Fair\n60 - 69    Grade::D        Passed\nbelow 60   Grade::F        Failed"
+    },
+    {
+      "type": "prose",
+      "html": "<p>Enums can hold methods, so the behavior that used to live in a lookup table can live on the case itself. <code>match</code> is the natural reader: it compares with <code>===</code>, it never falls through the way <code>switch</code> does, it is an expression that hands back a value, and its arms are tried in the order you wrote them.</p><p>If no arm matches and you wrote no <code>default</code>, PHP raises <code>UnhandledMatchError</code>. That is a feature: add a case, and every <code>match</code> that forgot it fails loudly instead of quietly returning the wrong remark.</p>"
+    },
+    {
+      "type": "code",
+      "title": "match reads an enum",
+      "code": "<?php\n\nenum Grade: string\n{\n    case A = 'A';\n    case B = 'B';\n    case F = 'F';\n}\n\nfunction remark(Grade $grade): string\n{\n    return match ($grade) {\n        Grade::A => 'Excellent',\n        Grade::B => 'Good',\n        Grade::F => 'Failed',\n    };\n}\n\necho remark(Grade::A), \"\\n\";\necho remark(Grade::B), \"\\n\";\necho remark(Grade::F), \"\\n\";\n",
+      "output": "Excellent\nGood\nFailed"
+    },
+    {
+      "type": "code",
+      "title": "the tier table rebuilt as an enum",
+      "code": "<?php\n\nuse App\\GradeCalculator;\n\nenum Grade: string\n{\n    case APlus = 'A+';\n    case A = 'A';\n    case AMinus = 'A-';\n    case BPlus = 'B+';\n    case B = 'B';\n    case BMinus = 'B-';\n    case CPlus = 'C+';\n    case C = 'C';\n    case CMinus = 'C-';\n    case D = 'D';\n    case F = 'F';\n\n    public function minimum(): int\n    {\n        return match ($this) {\n            self::APlus => 98,\n            self::A => 92,\n            self::AMinus => 90,\n            self::BPlus => 88,\n            self::B => 84,\n            self::BMinus => 80,\n            self::CPlus => 77,\n            self::C => 73,\n            self::CMinus => 70,\n            self::D => 60,\n            self::F => 0,\n        };\n    }\n\n    public function remark(): string\n    {\n        return match ($this) {\n            self::APlus, self::A, self::AMinus => 'Excellent',\n            self::BPlus, self::B, self::BMinus => 'Good',\n            self::CPlus, self::C, self::CMinus => 'Fair',\n            self::D => 'Passed',\n            self::F => 'Failed',\n        };\n    }\n}\n\nfunction letterFor(float $percent): Grade\n{\n    foreach (Grade::cases() as $tier) {\n        if ($percent >= $tier->minimum()) {\n            return $tier;\n        }\n    }\n\n    return Grade::F;\n}\n\nforeach ([96.5, 89.0, 74.2, 55.0] as $score) {\n    $grade = letterFor($score);\n    echo $score, ' -> ', $grade->value, ' (', $grade->remark(), \")\\n\";\n}\n\n$calculator = new GradeCalculator(quiz: 90.0, assignment: 88.0, midterm: 91.5, final: 87.0);\n$letter = $calculator->getLetterGrade();\necho 'the project says ', $letter, ', which is ', Grade::from($letter)->remark(), \"\\n\";\n",
+      "output": "96.5 -> A (Excellent)\n89 -> B+ (Good)\n74.2 -> C (Fair)\n55 -> F (Failed)\nthe project says B+, which is Good"
+    },
+    {
+      "type": "code",
+      "title": "a case is an object, not a string",
+      "code": "<?php\n\nenum Letter: string\n{\n    case A = 'A';\n    case B = 'B';\n}\n\n$grade = Letter::A;\n\nvar_dump($grade === Letter::A);\nvar_dump($grade === 'A');\nvar_dump($grade->value === 'A');\n",
+      "output": "bool(true)\nbool(false)\nbool(true)"
+    }
+  ],
+  "quiz": [
+    {
+      "q": "Which call returns null instead of throwing when the backing value has no case?",
+      "options": ["Grade::from('Z')", "Grade::tryFrom('Z')", "Grade::cases('Z')"],
+      "answer": 1,
+      "why": "tryFrom() returns null for an unknown value. from() throws a ValueError, and cases() takes no argument at all — it just lists every case."
+    },
+    {
+      "q": "For enum Grade: string { case A = 'A'; }, what does Grade::A->value evaluate to?",
+      "options": ["The case object Grade::A", "'A'", "true"],
+      "answer": 1,
+      "why": "->value is the backing scalar, so it is the plain string 'A'. The case itself stays an object; ->value is how you hand it to anything that stores strings."
+    },
+    {
+      "q": "A match has five arms and none of them matches the value. What happens?",
+      "options": ["It returns null", "It returns false", "PHP raises UnhandledMatchError"],
+      "answer": 2,
+      "why": "match has no fallthrough and no silent default: an uncovered value raises UnhandledMatchError, which is how a forgotten enum case announces itself."
+    }
+  ],
+  "exercise": {
+    "brief": "Declare a backed enum Planet: string with the cases Earth = 'earth' and Mars = 'mars'. Print the value of Mars, then print the number of cases on the next line.",
+    "starter": "<?php\n\nenum Planet: string\n{\n    case Earth = 'earth';\n    // add Mars here\n}\n\necho Planet::Mars->value, \"\\n\";\necho count(Planet::cases()), \"\\n\";\n",
+    "hint": "The case syntax is the same as Earth: case Mars = 'mars';. A backed case is always declared with its value, and Planet::cases() returns all of them.",
+    "checks": [
+      { "kind": "outputEquals", "value": "mars\n2" }
+    ],
+    "solution": "<?php\n\nenum Planet: string\n{\n    case Earth = 'earth';\n    case Mars = 'mars';\n}\n\necho Planet::Mars->value, \"\\n\";\necho count(Planet::cases()), \"\\n\";\n"
+  },
+  "docs": [
+    { "label": "PHP manual · Enumerations", "href": "language.enumerations.php" },
+    { "label": "PHP manual · Backed enumerations", "href": "language.enumerations.backed.php" },
+    { "label": "PHP manual · match", "href": "language.match.php" }
+  ]
+}

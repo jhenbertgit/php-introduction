@@ -1,0 +1,108 @@
+{
+  "id": "03-types",
+  "title": "Types that bite",
+  "minutes": 10,
+  "summary": "The type names, casting, == versus ===, integer division, and float precision.",
+  "keywords": ["types", "gettype", "casting", "strict comparison", "intdiv", "strict_types"],
+  "blocks": [
+    {
+      "type": "prose",
+      "html": "<p>PHP names seven types in lowercase: <code>int</code>, <code>float</code>, <code>string</code>, <code>bool</code>, <code>array</code>, <code>null</code>, and <code>object</code> for the instances that chapter 09 builds.</p><p><code>gettype()</code> returns the type as a string, and it uses the long names — <code>integer</code>, <code>double</code>, <code>boolean</code> — while <code>var_dump()</code> says <code>int</code>, <code>float</code>, <code>bool</code>. Same types, two spellings.</p>"
+    },
+    {
+      "type": "code",
+      "title": "gettype() names the type",
+      "code": "<?php\n\nvar_dump(gettype(42));\nvar_dump(gettype(4.2));\nvar_dump(gettype(\"42\"));\nvar_dump(gettype(true));\nvar_dump(gettype(null));\n",
+      "output": "string(7) \"integer\"\nstring(6) \"double\"\nstring(6) \"string\"\nstring(7) \"boolean\"\nstring(4) \"NULL\""
+    },
+    {
+      "type": "prose",
+      "html": "<p>Casting converts a value on demand, with <code>(int)</code>, <code>(float)</code>, <code>(string)</code> or <code>(bool)</code> in front of it. From a string, PHP takes the leading number and ignores everything after it — handy with messy input, dangerous when it silently erases a mistake.</p>"
+    },
+    {
+      "type": "code",
+      "title": "four casts",
+      "code": "<?php\n\nvar_dump((int) \"42\");         // clean number\nvar_dump((int) \"42 apples\");  // the rest is dropped\nvar_dump((int) 3.99);         // truncation, not rounding\nvar_dump((float) \"1.5\");\nvar_dump((string) 12);\nvar_dump((bool) \"0\");         // the string is not empty, but it is \"0\"\nvar_dump((bool) \"\");\nvar_dump((bool) \"false\");     // any non-empty string except \"0\" is true\n",
+      "output": "int(42)\nint(42)\nint(3)\nfloat(1.5)\nstring(2) \"12\"\nbool(false)\nbool(false)\nbool(true)"
+    },
+    {
+      "type": "prose",
+      "html": "<p>Now the operator that causes the most bugs in PHP. <code>==</code> converts the two sides until they can be compared, then compares. <code>===</code> compares value and type with no conversion, so a string is never equal to a number.</p><p>Two PHP 8 rules matter: a number compared with a non-numeric string is now compared as a string, so <code>0 == \"abc\"</code> is <code>false</code> (in PHP 7 it was true, the classic surprise), while two numeric strings are still compared as numbers.</p>"
+    },
+    {
+      "type": "code",
+      "title": "== against ===",
+      "code": "<?php\n\nvar_dump(\"1\" == 1);        // converted, then equal\nvar_dump(\"1\" === 1);       // different types\nvar_dump(\"1\" == \"01\");     // two numeric strings: compared as numbers\nvar_dump(0 == \"abc\");      // false since PHP 8\nvar_dump(1 == \"1abc\");     // false since PHP 8\nvar_dump(null == false);   // both loosely empty\n",
+      "output": "bool(true)\nbool(false)\nbool(true)\nbool(false)\nbool(false)\nbool(true)"
+    },
+    {
+      "type": "diagram",
+      "title": "loose and strict comparison",
+      "ascii": "  \"1\" == 1       convert, then compare      true\n  \"1\" === 1      compare value and type     false\n\n  \"1\" == \"01\"    both numeric strings       true\n  \"1\" === \"01\"   different characters       false\n\n  == asks: do these mean the same value?\n  === asks: same value, same type, no conversion."
+    },
+    {
+      "type": "code",
+      "title": "ask before you convert",
+      "code": "<?php\n\nvar_dump(is_int(42));\nvar_dump(is_int(\"42\"));       // a string is not an int\nvar_dump(is_numeric(\"42\"));   // but it is numeric\nvar_dump(is_numeric(\"42abc\"));\nvar_dump(is_numeric(\" 42\"));  // leading space is still numeric\n",
+      "output": "bool(true)\nbool(false)\nbool(true)\nbool(false)\nbool(true)"
+    },
+    {
+      "type": "code",
+      "title": "numeric strings join arithmetic",
+      "code": "<?php\n\n$amount = \"1500\";\n\necho $amount + 100, \"\\n\";   // the plus converts the numeric string\necho $amount . 100, \"\\n\";   // the dot concatenates instead\nvar_dump($amount);          // the variable itself is untouched\n",
+      "output": "1600\n1500100\nstring(4) \"1500\""
+    },
+    {
+      "type": "code",
+      "title": "integer division, remainder, and float imprecision",
+      "code": "<?php\n\n$minutes = 1530;\n\necho intdiv($minutes, 60), \" hours and \", $minutes % 60, \" minutes\\n\";\necho $minutes / 60, \"\\n\";      // the plain slash returns a float\n\nvar_dump(0.1 + 0.2);            // not 0.3\nvar_dump(0.1 + 0.2 == 0.3);     // and not equal to 0.3 either\nvar_dump(round(0.1 + 0.2, 2));\n",
+      "output": "25 hours and 30 minutes\n25.5\nfloat(0.30000000000000004)\nbool(false)\nfloat(0.3)"
+    },
+    {
+      "type": "prose",
+      "html": "<p><code>/</code> always gives a float; <code>intdiv()</code> gives whole units and <code>%</code> gives the remainder. And <code>0.1 + 0.2</code> is not <code>0.3</code>, because binary fractions cannot hold those decimals exactly — never compare two floats with <code>===</code>, compare their difference against a small tolerance, or <code>round()</code> first.</p><p>The same weak conversion can bite in the other direction: <code>\"abc\" + 5</code> throws a <code>TypeError</code> in PHP 8. A file that opens with <code>declare(strict_types=1)</code> refuses the quiet conversions for function arguments, so <code>strlen(42)</code> throws instead of reading <code>42</code> as text.</p>"
+    },
+    {
+      "type": "code",
+      "title": "declare(strict_types=1) is a file-level promise",
+      "code": "<?php\n\ndeclare(strict_types=1);\n\n// Below this line, an argument must already be the declared type.\nvar_dump(strlen(\"42\"));\n\n// Without the declare, strlen(42) would quietly return int(2).\n// With it, that same call throws a TypeError instead.\n",
+      "output": "int(2)"
+    }
+  ],
+  "quiz": [
+    {
+      "q": "Which comparison is true?",
+      "options": ["\"1\" === 1", "\"1\" == 1", "Neither is true"],
+      "answer": 1,
+      "why": "== converts the string to an integer and compares 1 with 1. === also compares types, and a string is not an integer, so it is false."
+    },
+    {
+      "q": "What does gettype(4.2) return?",
+      "options": ["float", "double", "4.2"],
+      "answer": 1,
+      "why": "gettype() uses the historical C names: integer, double, boolean, string. var_dump() reports the same value as float(4.2)."
+    },
+    {
+      "q": "Why is 0.1 + 0.2 === 0.3 false?",
+      "options": ["PHP rounds floats when it prints them", "Binary fractions cannot store 0.1, 0.2 and 0.3 exactly", "=== converts the sum to a string first"],
+      "answer": 1,
+      "why": "The stored sum is 0.30000000000000004, so the strict comparison fails. Compare a difference against a tolerance, or round before comparing."
+    }
+  ],
+  "exercise": {
+    "brief": "Start from $input = \"42\"; and print exactly four lines with var_dump(): the value cast to int, cast to float, compared strictly against the integer 42, and is_numeric(\"42 apples\").",
+    "starter": "<?php\n\n$input = \"42\";\n\n// four var_dump() lines\n",
+    "hint": "A cast goes in front of the expression: var_dump((int) $input); and the strict comparison is $input === 42.",
+    "checks": [
+      { "kind": "stdoutLines", "value": 4 },
+      { "kind": "outputContains", "value": "int(42)" },
+      { "kind": "outputContains", "value": "bool(false)" }
+    ],
+    "solution": "<?php\n\n$input = \"42\";\n\nvar_dump((int) $input);\nvar_dump((float) $input);\nvar_dump($input === 42);\nvar_dump(is_numeric(\"42 apples\"));\n"
+  },
+  "docs": [
+    { "label": "PHP manual · Type juggling", "href": "language.types.type-juggling.php" },
+    { "label": "PHP manual · Comparison operators", "href": "language.operators.comparison.php" },
+    { "label": "PHP manual · Type declarations and strict types", "href": "language.types.declarations.php" }
+  ]
+}

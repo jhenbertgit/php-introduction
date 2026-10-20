@@ -12,6 +12,42 @@ PHP 8.4 learning exercises running in Docker with Traefik reverse proxy. PSR-4 a
 
 Switch the active page by editing `public/index.php` (currently includes `atm_withdrawal.php`).
 
+## The course
+
+`public/course/` is a fourteen-chapter interactive course built from the code in this
+repository — the ATM, the student directory, the grade calculator and its class. It uses the
+same interaction model as the documentation below, with one addition: it can simulate a web
+request, so form and session chapters really run.
+
+```
+docker compose up -d
+open http://localhost/course/
+```
+
+| Path | What it is |
+|---|---|
+| `public/course/index.html` | The app shell: chapter rail, lesson column, workbench |
+| `public/course/js/app.js` | Router, lesson renderer, quiz, exercise checks, editor, request panel |
+| `public/course/js/highlight.js` | A small PHP tokenizer (no CDN, works offline) |
+| `public/course/run.php` | Endpoint that lints and runs a snippet, with request simulation |
+| `public/course/content/curriculum.json` | Five modules, fourteen chapters, closing reading list |
+| `public/course/content/lessons/*.json` | One file per chapter: prose, snippets, quiz, exercise, manual links |
+
+Chapters: first steps, values and types, branches and loops, arrays, functions, forms and
+`$_GET`/`$_POST`, sessions, classes, methods and named arguments, inheritance, enums, errors,
+and the project layout (Composer, PSR-4, framework-free tests).
+
+Every snippet is a real program: press **Run** and the page shows what PHP 8.4 printed. The
+**Request** panel under the editor seeds `$_SERVER['REQUEST_METHOD']`, `$_GET`, `$_POST` and
+`$_SESSION` as JSON before the snippet runs, which is how a chapter about a login form or a
+bank balance becomes something you can actually execute:
+
+```json
+{ "post": { "pin": "1234", "amount": "1500" }, "session": { "balance": 5000 } }
+```
+
+Progress, quiz answers, your code and your request inputs are kept in `localStorage`.
+
 ## Interactive documentation
 
 `public/docs/` holds a PHP 8.4 guide with 123 code blocks. Each block is editable and has a
@@ -25,8 +61,9 @@ open http://localhost/docs/
 
 What it does:
 
-- `public/docs/runner.php` — lints the snippet (`php -l`), then runs it in a throwaway
-  directory with the PHP CLI and returns stdout, stderr and timing as JSON.
+- `src/SnippetRunner.php` — the shared engine: lints the snippet (`php -l`), then runs it in a
+  throwaway directory with the PHP CLI and returns stdout, stderr and timing as JSON. Both
+  `public/docs/runner.php` and `public/course/run.php` are thin wrappers over it.
 - `public/docs/interactive.js` — adds the toolbar, the editable overlay (the highlighted
   block stays visible while you type) and the output panel; compares the result with the
   documented output (`✓ matches`, `≈ close`, `✗ differs`).
@@ -63,10 +100,19 @@ Some blocks cannot run in isolation and say so by failing visibly: multi-file ex
 `require` a sibling file, snippets needing `pdo_mysql`/`redis`/`ffi`, examples reading
 `$_GET`/`$_POST` (there is no request), and blocks that deliberately demonstrate an error.
 
-### Checking the docs after you edit them
+### Checking after you edit
 
-`tools/docs-checks/` holds three jsdom checks — page smoke test, a run of all 123 blocks,
-and the Pages-like offline behaviour. See `tools/docs-checks/README.md`.
+Two dev-only check folders, both explained in their own READMEs:
+
+```bash
+node tools/course-checks/verify.mjs      # lints and runs all 84 course snippets
+node tools/docs-checks/smoketest.mjs     # 23 DOM checks for the guide
+```
+
+`tools/course-checks/` also has `smoke.mjs` (28 checks: the course page, the request panel,
+and the read-only behaviour with no PHP at all), and `tools/docs-checks/` has `audit.mjs`
+(runs all 123 guide snippets) and `offline.mjs`. Both folders need `jsdom` once:
+`npm install --prefix tools/course-checks`.
 
 ## Quick Start
 

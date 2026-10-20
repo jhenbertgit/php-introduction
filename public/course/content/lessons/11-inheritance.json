@@ -1,0 +1,104 @@
+{
+  "id": "11-inheritance",
+  "title": "Inheritance, interfaces, traits",
+  "minutes": 11,
+  "summary": "Extend a class, promise a contract with interfaces, share bodies with traits.",
+  "keywords": ["extends", "parent", "abstract", "interface", "implements", "trait", "final"],
+  "blocks": [
+    {
+      "type": "prose",
+      "html": "<p><code>class ReportCard extends GradeCalculator</code> says a report card <em>is a</em> calculator: it has every public method the parent has, and may add more. <code>honors()</code> is one line of new behavior on top of the grade the parent already computes.</p><p>If the child declares its own constructor, it must pass the arguments up with <code>parent::__construct(...)</code>. The parent's properties are set there and nowhere else.</p>"
+    },
+    {
+      "type": "code",
+      "title": "a report card is a grade calculator",
+      "code": "<?php\n\nuse App\\GradeCalculator;\n\nclass ReportCard extends GradeCalculator\n{\n    public function __construct(\n        float $quiz,\n        float $assignment,\n        float $midterm,\n        float $final,\n    ) {\n        parent::__construct($quiz, $assignment, $midterm, $final);\n    }\n\n    public function honors(): bool\n    {\n        return $this->getFinalGrade() >= 90;\n    }\n}\n\n$card = new ReportCard(90.0, 92.0, 88.0, 95.0);\n\necho $card->getFinalGrade(), ' ', $card->getLetterGrade(), \"\\n\";\necho ($card->honors() ? 'with honors' : 'no honors'), \"\\n\";\n",
+      "output": "91.65 A-\nwith honors"
+    },
+    {
+      "type": "callout",
+      "tone": "warn",
+      "html": "<p>Skip that <code>parent::__construct()</code> call and the object still builds, quietly. The parent's readonly properties are never assigned, so the first inherited method that reads one throws <code>Error: Typed property GradeCalculator::$quiz must not be accessed before initialization</code>. Every child constructor forwards to its parent.</p>"
+    },
+    {
+      "type": "prose",
+      "html": "<p>An <strong>abstract class</strong> cannot be instantiated. It exists so that children can be: it mixes finished methods with <em>abstract</em> ones — a signature and a return type, no body. Every concrete child must supply the body, so calling <code>headline()</code> on any report is safe even though the abstract class never wrote it.</p><p>A child may also replace an inherited method entirely. That is <strong>overriding</strong>, and <code>parent::describe()</code> reaches the version it replaced.</p>"
+    },
+    {
+      "type": "code",
+      "title": "abstract method, concrete child, overridden method",
+      "code": "<?php\n\nabstract class Report\n{\n    abstract public function headline(): string;\n\n    public function describe(): string\n    {\n        return 'a report';\n    }\n}\n\nclass TermReport extends Report\n{\n    public function __construct(private readonly string $term) {}\n\n    public function headline(): string\n    {\n        return 'Term ' . $this->term;\n    }\n\n    public function describe(): string\n    {\n        return parent::describe() . ' for ' . $this->headline();\n    }\n}\n\n$report = new TermReport('2nd');\n\necho $report->describe(), \"\\n\";\n",
+      "output": "a report for Term 2nd"
+    },
+    {
+      "type": "prose",
+      "html": "<p>An <strong>interface</strong> is a contract with no state: method signatures and nothing to inherit. A class <code>implements</code> it and promises the bodies. Unlike a parent class, a class may implement as many interfaces as it likes, which is how unrelated types share a capability — printable, comparable, countable.</p><p>The interface is what a caller programs against. If a page only needs <code>summarize()</code>, it does not care whether the object is a quiz or a report.</p>"
+    },
+    {
+      "type": "code",
+      "title": "two interfaces, one class",
+      "code": "<?php\n\ninterface Printable\n{\n    public function summarize(): string;\n}\n\ninterface Scored\n{\n    public function score(): float;\n}\n\nclass Quiz implements Printable, Scored\n{\n    public function __construct(private readonly float $points) {}\n\n    public function score(): float\n    {\n        return $this->points;\n    }\n\n    public function summarize(): string\n    {\n        return 'Quiz worth ' . $this->points . ' points';\n    }\n}\n\n$quiz = new Quiz(88.5);\n\necho $quiz->summarize(), \"\\n\";\necho $quiz->score(), \"\\n\";\n",
+      "output": "Quiz worth 88.5 points\n88.5"
+    },
+    {
+      "type": "prose",
+      "html": "<p>A <strong>trait</strong> is a bundle of finished method bodies that you drop into a class with <code>use</code>. It is not a type, it cannot be instantiated, and PHP copies the methods in as if you had typed them in the class yourself. Reach for a trait when several unrelated classes need the same code — inheritance is for one family, a trait is for a habit.</p>"
+    },
+    {
+      "type": "code",
+      "title": "a trait for stamping",
+      "code": "<?php\n\ntrait Timestampable\n{\n    private ?string $stamp = null;\n\n    public function stampOn(string $date): void\n    {\n        $this->stamp = $date;\n    }\n\n    public function stamp(): string\n    {\n        return $this->stamp ?? 'not stamped';\n    }\n}\n\nclass Quiz\n{\n    use Timestampable;\n\n    public function __construct(private readonly float $points) {}\n}\n\n$quiz = new Quiz(88.5);\n\necho $quiz->stamp(), \"\\n\";\n$quiz->stampOn('2024-06-14');\necho $quiz->stamp(), \"\\n\";\n",
+      "output": "not stamped\n2024-06-14"
+    },
+    {
+      "type": "prose",
+      "html": "<p><code>final</code> closes a door: on a method it makes overriding a fatal error, on a class it makes extending one. Use it wherever a subclass changing that behavior would be a bug, such as a constructor that sets an invariant.</p><p>And keep the ordering in mind: inheritance is for a genuine is-a. When a class merely <em>uses</em> another, hold an instance in a property and call it — composition — because two small classes that call each other stay free to change, while a parent and its children are welded together. Reach for <code>extends</code> last, not first.</p>"
+    },
+    {
+      "type": "code",
+      "title": "what final refuses",
+      "runnable": false,
+      "code": "<?php\n\nclass Report\n{\n    final public function describe(): string\n    {\n        return 'a report';\n    }\n}\n\nclass TermReport extends Report\n{\n    public function describe(): string\n    {\n        return 'overridden';\n    }\n}\n\n// Fatal error: Cannot override final method Report::describe()\n"
+    },
+    {
+      "type": "code",
+      "title": "all three at once: extends, implements, use",
+      "code": "<?php\n\nuse App\\GradeCalculator;\n\ntrait Timestampable\n{\n    private ?string $stamp = null;\n\n    public function stampOn(string $date): void\n    {\n        $this->stamp = $date;\n    }\n\n    public function stamp(): string\n    {\n        return $this->stamp ?? 'not stamped';\n    }\n}\n\ninterface Printable\n{\n    public function summarize(): string;\n}\n\nclass ReportCard extends GradeCalculator implements Printable\n{\n    use Timestampable;\n\n    public function honors(): bool\n    {\n        return $this->getFinalGrade() >= 90;\n    }\n\n    public function summarize(): string\n    {\n        return $this->getLetterGrade()\n            . ' (' . number_format($this->getFinalGrade(), 2) . ')'\n            . ', stamped ' . $this->stamp();\n    }\n}\n\n$card = new ReportCard(90.0, 92.0, 88.0, 95.0);\n$card->stampOn('2024-06-14');\n\necho $card->summarize(), \"\\n\";\necho ($card->honors() ? 'honors' : 'no honors'), \"\\n\";\n",
+      "output": "A- (91.65), stamped 2024-06-14\nhonors"
+    }
+  ],
+  "quiz": [
+    {
+      "q": "A child class declares its own __construct(). What does it owe the parent?",
+      "options": ["Nothing, constructors are independent", "A parent::__construct(...) call with the arguments it was given", "It must repeat the parent's property declarations"],
+      "answer": 1,
+      "why": "The parent's constructor is the only place its promoted properties are assigned. Without the parent:: call the object exists but its inherited state was never initialized, and the first method that reads it throws an Error."
+    },
+    {
+      "q": "How many interfaces may one class implement?",
+      "options": ["Exactly one", "As many as it needs", "Only one per parent class"],
+      "answer": 1,
+      "why": "Interface lists are comma-separated: class Quiz implements Printable, Scored. A class has a single parent, but capabilities stack."
+    },
+    {
+      "q": "What does final on a method do?",
+      "options": ["Makes it private", "Makes overriding it a fatal error", "Prevents the class from being instantiated"],
+      "answer": 1,
+      "why": "final marks a method as complete: a child that tries to redeclare it stops the script with Cannot override final method. Writing final on the class instead blocks extending it."
+    }
+  ],
+  "exercise": {
+    "brief": "Combine the three pieces. A trait Named whose method name(): string returns $this->name. An abstract class Report with an abstract headline(): string and a concrete banner(): string returning '== ' . headline() . ' =='. A class TermReport extends Report, uses Named, promotes a readonly string $name, and returns 'Term ' . $this->name from headline(). Print the banner for the name 2nd.",
+    "starter": "<?php\n\n// trait, abstract class, child class, one echo\n",
+    "hint": "A trait is pulled in with use Named; inside the class body, on the same level as the property and the methods. banner() lives in the parent and calls the abstract method, so the child only writes headline().",
+    "checks": [
+      { "kind": "outputEquals", "value": "== Term 2nd ==" }
+    ],
+    "solution": "<?php\n\ntrait Named\n{\n    public function name(): string\n    {\n        return $this->name;\n    }\n}\n\nabstract class Report\n{\n    abstract public function headline(): string;\n\n    public function banner(): string\n    {\n        return '== ' . $this->headline() . ' ==';\n    }\n}\n\nclass TermReport extends Report\n{\n    use Named;\n\n    public function __construct(private readonly string $name) {}\n\n    public function headline(): string\n    {\n        return 'Term ' . $this->name;\n    }\n}\n\n$report = new TermReport('2nd');\n\necho $report->banner(), \"\\n\";\n"
+  },
+  "docs": [
+    { "label": "PHP manual · Object inheritance", "href": "language.oop5.inheritance.php" },
+    { "label": "PHP manual · Interfaces", "href": "language.oop5.interfaces.php" },
+    { "label": "PHP manual · Traits", "href": "language.oop5.traits.php" }
+  ]
+}

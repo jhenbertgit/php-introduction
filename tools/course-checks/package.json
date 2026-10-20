@@ -1,0 +1,11 @@
+{
+  "name": "course-checks",
+  "private": true,
+  "type": "module",
+  "description": "Dev-only checks for the interactive course in public/course",
+  "scripts": {
+    "verify": "node verify.mjs",
+    "smoke": "node smoke.mjs"
+  },
+  "devDependencies": { "jsdom": "^30.1.3" }
+}

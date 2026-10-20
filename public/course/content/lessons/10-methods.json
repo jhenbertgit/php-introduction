@@ -1,0 +1,114 @@
+{
+  "id": "10-methods",
+  "title": "Methods, arguments, and the calculator",
+  "minutes": 11,
+  "summary": "Behavior on the object: $this, visibility, static calls, named arguments.",
+  "keywords": ["methods", "$this", "return types", "visibility", "static", "named arguments", "array_map"],
+  "blocks": [
+    {
+      "type": "prose",
+      "html": "<p>A property is data. A <strong>method</strong> is a function that lives inside the class body and works on that data. It reaches the object it was called on through <code>$this</code>, and returns something the caller can use.</p><p>That is the whole reason classes exist: the state and the code that understands the state sit in one place, and the outside world asks questions instead of poking at numbers.</p>"
+    },
+    {
+      "type": "code",
+      "title": "a method answers a question",
+      "code": "<?php\n\nclass Score\n{\n    public function __construct(\n        public readonly string $label,\n        public readonly float $value,\n    ) {}\n\n    public function describe(): string\n    {\n        return $this->label . ' scored ' . $this->value;\n    }\n}\n\n$quiz = new Score('Quiz', 88.5);\n\necho $quiz->describe(), \"\\n\";\n",
+      "output": "Quiz scored 88.5"
+    },
+    {
+      "type": "prose",
+      "html": "<p><code>describe(): string</code> is a promise: whatever it returns is a string, and the caller can use it without checking. <code>void</code> means it returns nothing on purpose.</p><p>The keyword before the name is <strong>visibility</strong>. <code>public</code> is callable from anywhere. <code>private</code> is callable only from inside the class body, which is how a class hides the steps it used to reach an answer.</p>"
+    },
+    {
+      "type": "code",
+      "title": "a private helper",
+      "code": "<?php\n\nclass Score\n{\n    public function __construct(\n        public readonly string $label,\n        public readonly float $value,\n    ) {}\n\n    public function percentOf(float $max): string\n    {\n        return $this->label . ': ' . $this->ratio($max) . '%';\n    }\n\n    private function ratio(float $max): float\n    {\n        return round($this->value / $max * 100, 1);\n    }\n}\n\n$quiz = new Score('Quiz', 88.5);\n\necho $quiz->percentOf(100), \"\\n\";\n",
+      "output": "Quiz: 88.5%"
+    },
+    {
+      "type": "prose",
+      "html": "<p>Calling <code>$quiz-&gt;ratio(100)</code> from outside is a fatal error, and that is the feature: <code>percentOf()</code> can change how it rounds tomorrow without breaking a caller. Inside the class, <code>$this-&gt;ratio()</code> is allowed just like any other method.</p><p>Some behavior does not need an object at all. A <code>static</code> method is called on the class, with <code>::</code>, and it has no <code>$this</code>. Class constants are read the same way, and inside the class body <code>self::</code> means \"this class\".</p>"
+    },
+    {
+      "type": "code",
+      "title": ":: on the class itself",
+      "code": "<?php\n\nclass Scale\n{\n    public const PASSING = 60;\n    public const MAX = 100;\n\n    public static function describe(float $score): string\n    {\n        return $score >= self::PASSING\n            ? 'passing, out of ' . self::MAX\n            : 'failing, needs ' . self::PASSING;\n    }\n}\n\necho Scale::describe(76.5), \"\\n\";\necho Scale::describe(41), \"\\n\";\necho Scale::PASSING, \"\\n\";\n",
+      "output": "passing, out of 100\nfailing, needs 60\n60"
+    },
+    {
+      "type": "prose",
+      "html": "<p>Now the caller's problem. <code>new GradeCalculator(90.0, 92.0, 88.0, 95.0)</code> says nothing about which number is which: the constructor decides the order, and a caller who guesses wrong gets a plausible wrong grade.</p><p><strong>Named arguments</strong> fix that. Write the parameter name, a colon, then the value. Order stops mattering, the call reads like a sentence, and a mistake shows up as an error instead of a bad average.</p>"
+    },
+    {
+      "type": "code",
+      "title": "positional and named, side by side",
+      "code": "<?php\n\nuse App\\GradeCalculator;\n\n$positional = new GradeCalculator(90.0, 92.0, 88.0, 95.0);\n$named = new GradeCalculator(final: 95, midterm: 88, assignment: 92, quiz: 90);\n\necho $positional->getFinalGrade(), \"\\n\";\necho $named->getFinalGrade(), \"\\n\";\necho $named->getLetterGrade(), ' ', $named->getRemarks(), \"\\n\";\n",
+      "output": "91.65\n91.65\nA- Excellent"
+    },
+    {
+      "type": "prose",
+      "html": "<p>The rest of the class is four small methods. <code>getWeightedScores()</code> builds two arrays with the same keys, scores and weights, then <code>array_combine(array_keys($scores), array_map(fn($score, $weight) =&gt; $score * $weight, $scores, self::WEIGHTS))</code>: two arrays into <code>array_map</code> means the callback gets one element from each, and <code>array_combine</code> pairs the original keys with those products.</p><p><code>getFinalGrade()</code> is <code>array_sum()</code> over that list. <code>getLetterGrade()</code> walks the tiers from 98 down and returns the first one the average reaches. <code>getRemarks()</code> uses <code>match (true)</code>, where each arm is a condition and the first true one wins. <code>isPassed()</code> is one comparison.</p>"
+    },
+    {
+      "type": "code",
+      "title": "the machinery, without the class",
+      "code": "<?php\n\n$scores = [\n    'quiz' => 90.0,\n    'assignment' => 92.0,\n    'midterm' => 88.0,\n    'final' => 95.0,\n];\n\n$weights = [\n    'quiz' => 0.20,\n    'assignment' => 0.20,\n    'midterm' => 0.25,\n    'final' => 0.35,\n];\n\n$weighted = array_combine(\n    array_keys($scores),\n    array_map(fn($score, $weight) => $score * $weight, $scores, $weights),\n);\n\nprint_r($weighted);\n\n$grade = array_sum($weighted);\necho $grade, \"\\n\";\n\n$tiers = [\n    ['min' => 92, 'grade' => 'A'],\n    ['min' => 90, 'grade' => 'A-'],\n    ['min' => 88, 'grade' => 'B+'],\n];\n\nforeach ($tiers as $tier) {\n    if ($grade >= $tier['min']) {\n        echo $tier['grade'], \"\\n\";\n        break;\n    }\n}\n\necho match (true) {\n    $grade >= 90 => 'Excellent',\n    $grade >= 80 => 'Good',\n    default => 'Failed',\n}, \"\\n\";\n",
+      "output": "Array\n(\n    [quiz] => 18\n    [assignment] => 18.4\n    [midterm] => 22\n    [final] => 33.25\n)\n91.65\nA-\nExcellent"
+    },
+    {
+      "type": "code",
+      "title": "the whole class, run",
+      "code": "<?php\n\ndeclare(strict_types=1);\n\nclass GradeCalculator\n{\n    private const WEIGHTS = [\n        'quiz' => 0.20,\n        'assignment' => 0.20,\n        'midterm' => 0.25,\n        'final' => 0.35,\n    ];\n\n    private const LETTER_GRADES = [\n        ['min' => 98, 'grade' => 'A+'],\n        ['min' => 92, 'grade' => 'A'],\n        ['min' => 90, 'grade' => 'A-'],\n        ['min' => 88, 'grade' => 'B+'],\n        ['min' => 84, 'grade' => 'B'],\n        ['min' => 80, 'grade' => 'B-'],\n        ['min' => 77, 'grade' => 'C+'],\n        ['min' => 73, 'grade' => 'C'],\n        ['min' => 70, 'grade' => 'C-'],\n        ['min' => 60, 'grade' => 'D'],\n    ];\n\n    public function __construct(\n        private readonly float $quiz,\n        private readonly float $assignment,\n        private readonly float $midterm,\n        private readonly float $final,\n    ) {}\n\n    public function getWeightedScores(): array\n    {\n        $scores = [\n            'quiz' => $this->quiz,\n            'assignment' => $this->assignment,\n            'midterm' => $this->midterm,\n            'final' => $this->final,\n        ];\n\n        return array_combine(\n            array_keys($scores),\n            array_map(fn($score, $weight) => $score * $weight, $scores, self::WEIGHTS),\n        );\n    }\n\n    public function getFinalGrade(): float\n    {\n        return array_sum($this->getWeightedScores());\n    }\n\n    public function getLetterGrade(): string\n    {\n        $grade = $this->getFinalGrade();\n\n        foreach (self::LETTER_GRADES as $tier) {\n            if ($grade >= $tier['min']) {\n                return $tier['grade'];\n            }\n        }\n\n        return 'F';\n    }\n\n    public function getRemarks(): string\n    {\n        return match (true) {\n            $this->getFinalGrade() >= 90 => 'Excellent',\n            $this->getFinalGrade() >= 80 => 'Good',\n            $this->getFinalGrade() >= 70 => 'Fair',\n            $this->getFinalGrade() >= 60 => 'Passed',\n            default => 'Failed',\n        };\n    }\n\n    public function isPassed(): bool\n    {\n        return $this->getFinalGrade() >= 60;\n    }\n}\n\n$calculator = new GradeCalculator(90.0, 92.0, 88.0, 95.0);\n\necho $calculator->getFinalGrade(), ' | ',\n    $calculator->getLetterGrade(), ' | ',\n    $calculator->getRemarks(), ' | ',\n    ($calculator->isPassed() ? 'passed' : 'failed'), \"\\n\";\n",
+      "output": "91.65 | A- | Excellent | passed"
+    },
+    {
+      "type": "code",
+      "title": "public/gradeCalculator.index.php, reduced to its PHP",
+      "code": "<?php\n\nuse App\\GradeCalculator;\n\n$calculator = new GradeCalculator(\n    quiz: (float)($_POST['quiz_score'] ?? 0),\n    assignment: (float)($_POST['assignment_score'] ?? 0),\n    midterm: (float)($_POST['midterm_exam'] ?? 0),\n    final: (float)($_POST['final_exam'] ?? 0),\n);\n\nforeach ($calculator->getWeightedScores() as $part => $points) {\n    echo $part, ': ', number_format($points, 2), \"\\n\";\n}\n\necho 'Final Grade: ', number_format($calculator->getFinalGrade(), 2), \"%\\n\";\necho 'Letter Grade: ', $calculator->getLetterGrade(), \"\\n\";\necho 'Remarks: ', $calculator->getRemarks(), \"\\n\";\necho 'Status: ', ($calculator->isPassed() ? 'Passed' : 'Failed'), \"\\n\";\n",
+      "request": {
+        "method": "POST",
+        "post": {
+          "quiz_score": "90",
+          "assignment_score": "92",
+          "midterm_exam": "88",
+          "final_exam": "95"
+        }
+      },
+      "output": "quiz: 18.00\nassignment: 18.40\nmidterm: 22.00\nfinal: 33.25\nFinal Grade: 91.65%\nLetter Grade: A-\nRemarks: Excellent\nStatus: Passed"
+    }
+  ],
+  "quiz": [
+    {
+      "q": "Inside a method, what is $this?",
+      "options": ["The class name", "The object the method was called on", "A copy of the last property written"],
+      "answer": 1,
+      "why": "Each call to $calculator->method() binds $this to that particular object, which is why two objects with the same class keep separate answers."
+    },
+    {
+      "q": "Which one can be called without ever creating an object?",
+      "options": ["public function describe(): string", "public static function describe(): string", "private function describe(): string"],
+      "answer": 1,
+      "why": "A static method belongs to the class, so Scale::describe(41) works with no instance. Public instance methods need an object; private ones are not callable from outside at all."
+    },
+    {
+      "q": "Why prefer new GradeCalculator(quiz: 90, final: 95, midterm: 88, assignment: 92) over the positional form?",
+      "options": ["It runs faster", "The order stops mattering and the call names every value", "It allows values the constructor does not declare"],
+      "answer": 1,
+      "why": "Named arguments match values to parameters by name, so a reordered call is still correct and a missing or misspelled name is a loud error. Speed is identical."
+    }
+  ],
+  "exercise": {
+    "brief": "Build a GradeCalculator with named arguments: quiz 80, assignment 70, midterm 60, final 90. Print the letter grade, then the remarks, each on its own line.",
+    "starter": "<?php\n\nuse App\\GradeCalculator;\n\n// one calculator, two lines\n",
+    "hint": "The parameter names are quiz, assignment, midterm and final. The class answers with getLetterGrade() and getRemarks().",
+    "checks": [
+      { "kind": "outputEquals", "value": "C\nFair" }
+    ],
+    "solution": "<?php\n\nuse App\\GradeCalculator;\n\n$calculator = new GradeCalculator(\n    quiz: 80,\n    assignment: 70,\n    midterm: 60,\n    final: 90,\n);\n\necho $calculator->getLetterGrade(), \"\\n\";\necho $calculator->getRemarks(), \"\\n\";\n"
+  },
+  "docs": [
+    { "label": "PHP manual · Visibility", "href": "language.oop5.visibility.php" },
+    { "label": "PHP manual · Named arguments", "href": "functions.arguments.php" },
+    { "label": "PHP manual · The static keyword", "href": "language.oop5.static.php" }
+  ]
+}
