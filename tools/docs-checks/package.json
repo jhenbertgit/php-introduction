@@ -1,0 +1,14 @@
+{
+  "name": "php-docs-checks",
+  "private": true,
+  "type": "module",
+  "description": "Dev-only browser-DOM checks for the interactive docs in public/docs",
+  "scripts": {
+    "check": "node smoketest.mjs",
+    "audit": "node audit.mjs",
+    "offline": "node offline.mjs"
+  },
+  "devDependencies": {
+    "jsdom": "^30.1.3"
+  }
+}

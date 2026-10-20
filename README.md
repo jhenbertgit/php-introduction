@@ -12,6 +12,62 @@ PHP 8.4 learning exercises running in Docker with Traefik reverse proxy. PSR-4 a
 
 Switch the active page by editing `public/index.php` (currently includes `atm_withdrawal.php`).
 
+## Interactive documentation
+
+`public/docs/` holds a PHP 8.4 guide with 123 code blocks. Each block is editable and has a
+**Run** button: the snippet is executed by the PHP 8.4 inside the Docker container and the
+output appears underneath, next to the documented output so you can see whether it agrees.
+
+```
+docker compose up -d
+open http://localhost/docs/
+```
+
+What it does:
+
+- `public/docs/runner.php` — lints the snippet (`php -l`), then runs it in a throwaway
+  directory with the PHP CLI and returns stdout, stderr and timing as JSON.
+- `public/docs/interactive.js` — adds the toolbar, the editable overlay (the highlighted
+  block stays visible while you type) and the output panel; compares the result with the
+  documented output (`✓ matches`, `≈ close`, `✗ differs`).
+- `public/docs/interactive.css` — styling for both themes.
+
+Snippets that use `App\` classes get `vendor/autoload.php` injected automatically, after any
+`declare(...)` or `namespace` statement, so `use App\GradeCalculator;` works without a
+`require` line.
+
+### It executes code — read this
+
+The runner runs snippets as `www-data` inside the container. That is fine for a local
+learning app and wrong for anything public. To turn it off:
+
+```bash
+docker compose exec php-server sh -c 'touch public/docs/runner.disabled'   # until recreated
+PHP_DOCS_RUNNER=off docker compose up -d                                    # environment switch
+```
+
+Hardening already in the runner: `exec`, `shell_exec`, `system`, `proc_open`, sockets,
+`curl_*`, `mail` and friends are disabled for snippets; `open_basedir` limits them to their
+temp directory plus the app root; 5 s wall clock limit, 128 MB memory limit, 64 KB caps on
+code and output; requests must carry the `X-PHP-Docs-Runner` header.
+
+### On GitHub Pages
+
+Pages cannot run PHP, so `.github/workflows/deploy-pages.yml` publishes `public/docs`
+**with every `.php` file excluded**. The hosted copy stays readable, marks Run as
+unavailable, and says to run the app locally — it never pretends a snippet ran.
+
+### Known limits
+
+Some blocks cannot run in isolation and say so by failing visibly: multi-file examples that
+`require` a sibling file, snippets needing `pdo_mysql`/`redis`/`ffi`, examples reading
+`$_GET`/`$_POST` (there is no request), and blocks that deliberately demonstrate an error.
+
+### Checking the docs after you edit them
+
+`tools/docs-checks/` holds three jsdom checks — page smoke test, a run of all 123 blocks,
+and the Pages-like offline behaviour. See `tools/docs-checks/README.md`.
+
 ## Quick Start
 
 1. Copy `.env.example` to `.env` (or use defaults)

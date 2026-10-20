@@ -1,13 +1,23 @@
 name: Deploy PHP Docs to GitHub Pages
 
+# Publishes public/docs as a static site.
+#
+# The docs folder also contains runner.php, which executes snippets with a local PHP.
+# GitHub Pages cannot run PHP, so "*.php" is excluded from the artifact: the deployed
+# copy is read-only and the interactive layer says so instead of pretending to run.
+#
+# One-time setup: Settings -> Pages -> Build and deployment -> Source: GitHub Actions.
+
 on:
   push:
     branches: [main]
     paths:
-      - 'public/docs/index.html'
+      - 'public/docs/**'
+      - '.github/workflows/deploy-pages.yml'
   workflow_dispatch:
 
 permissions:
+  contents: read
   pages: write
   id-token: write
 
@@ -20,19 +30,41 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
+
+      - name: Check that the docs are self-consistent
+        run: |
+          set -eu
+          test -f public/docs/index.html
+          for asset in interactive.css interactive.js runner.php; do
+            test -f "public/docs/$asset" || { echo "missing public/docs/$asset"; exit 1; }
+          done
+          for asset in interactive.css interactive.js; do
+            grep -q "$asset" public/docs/index.html || { echo "index.html does not load $asset"; exit 1; }
+          done
+          echo "docs reference their assets"
+
+      - name: Stage the docs without the PHP runner
+        run: |
+          mkdir -p _site
+          rsync -a --exclude '*.php' public/docs/ _site/
+          touch _site/.nojekyll
+          echo "staged $(find _site -type f | wc -l) files"
 
       - name: Setup Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
+        with:
+          # Creates the Pages site on first run instead of failing with a 404.
+          enablement: true
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
-          path: public/docs
+          path: _site
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

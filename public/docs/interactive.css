@@ -1,0 +1,242 @@
+/* ---------------------------------------------------------------------------
+   Interactive layer for the PHP 8.4 docs.
+   Adds a Run bar, an editable overlay and an output panel to every PHP code
+   block. Colours come from the docs' own tokens where they exist, so both the
+   dark and light themes keep working.
+   --------------------------------------------------------------------------- */
+
+/* ---- run bar ------------------------------------------------------------ */
+
+.code-block {
+  --run-line: 1.7;      /* must match the pre inside the block */
+  --run-pad-y: 20px;
+  --run-pad-x: 24px;
+}
+
+.run-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border-color, #2a2f3a);
+  background: rgba(127, 127, 127, 0.07);
+  font-family: var(--font-body, system-ui, sans-serif);
+}
+
+.run-bar__spacer {
+  flex: 1 1 auto;
+}
+
+.run-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 11px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm, 4px);
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.4;
+  cursor: pointer;
+  background: var(--accent-green, #10b981);
+  color: #06251c;
+  transition: filter var(--transition, 0.15s ease), opacity var(--transition, 0.15s ease);
+}
+
+.run-btn:hover:not([disabled]) {
+  filter: brightness(1.08);
+}
+
+.run-btn[disabled] {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.run-btn__icon {
+  font-size: 0.7rem;
+}
+
+.run-quiet {
+  padding: 4px 9px;
+  border: 1px solid var(--border-color, #2a2f3a);
+  border-radius: var(--radius-sm, 4px);
+  background: transparent;
+  color: var(--text-secondary, #9aa4b2);
+  font-family: inherit;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.run-quiet:hover {
+  color: var(--text-primary, #e6eaf2);
+  border-color: currentColor;
+}
+
+.run-status {
+  font-family: var(--font-code, ui-monospace, monospace);
+  font-size: 0.7rem;
+  color: var(--text-secondary, #9aa4b2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 40%;
+}
+
+.run-status[data-state="ok"] { color: var(--accent-green, #10b981); }
+.run-status[data-state="err"] { color: var(--accent-orange, #f59e0b); }
+.run-status[data-state="busy"] { color: var(--accent-purple, #7c3aed); }
+
+/* The docs' own copy button moves into the bar. */
+.run-bar .code-block__copy {
+  position: static !important;
+  top: auto !important;
+  right: auto !important;
+  border: 1px solid var(--border-color, #2a2f3a);
+  border-radius: var(--radius-sm, 4px);
+  font-size: 0.72rem;
+}
+
+/* ---- editable overlay --------------------------------------------------- */
+
+.run-edit {
+  position: relative;
+}
+
+.run-edit pre[class*="language-"] {
+  margin: 0;
+  min-height: calc(var(--run-pad-y) * 2 + 1.2em * var(--run-line));
+}
+
+.run-edit__input {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  margin: 0;
+  padding: var(--run-pad-y) var(--run-pad-x);
+  border: 0;
+  background: transparent;
+  color: transparent;
+  caret-color: var(--text-primary, #e6eaf2);
+  font-family: var(--font-code, ui-monospace, monospace);
+  font-size: var(--font-size-code, 0.875rem);
+  line-height: var(--run-line);
+  tab-size: 4;
+  white-space: pre;
+  overflow: auto;
+  resize: none;
+  outline: none;
+}
+
+.run-edit__input::selection {
+  background: rgba(124, 58, 237, 0.35);
+  color: transparent;
+}
+
+.run-edit__input:focus-visible {
+  box-shadow: inset 0 0 0 1px var(--accent-purple, #7c3aed);
+}
+
+[data-theme="light"] .run-edit__input {
+  caret-color: #10151c;
+}
+
+/* ---- output panel ------------------------------------------------------- */
+
+.run-out {
+  margin: -8px 0 20px;
+  border: 1px solid var(--border-color, #2a2f3a);
+  border-radius: var(--radius, 6px);
+  overflow: hidden;
+  background: var(--bg-code, #0f1420);
+}
+
+.run-out__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border-color, #2a2f3a);
+  font-family: var(--font-code, ui-monospace, monospace);
+  font-size: 0.72rem;
+  color: var(--text-secondary, #9aa4b2);
+}
+
+.run-out__head .run-out__label {
+  font-weight: 600;
+}
+
+.run-out[data-ok="true"] .run-out__label { color: var(--accent-green, #10b981); }
+.run-out[data-ok="false"] .run-out__label { color: var(--accent-orange, #f59e0b); }
+.run-out__meta { margin-left: auto; }
+
+.run-out__body {
+  margin: 0;
+  padding: 14px 18px;
+  font-family: var(--font-code, ui-monospace, monospace);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 340px;
+  overflow: auto;
+  color: var(--text-primary, #e6eaf2);
+}
+
+.run-out__body .run-err { color: var(--accent-orange, #f59e0b); }
+.run-out__body .run-soft { opacity: 0.65; }
+.run-out__body .run-ok-note { color: var(--accent-green, #10b981); }
+
+/* ---- compare against the documented output ------------------------------ */
+
+.run-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 7px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 0.68rem;
+}
+
+.run-check[data-match="true"] { color: var(--accent-green, #10b981); }
+.run-check[data-match="false"] { color: var(--accent-orange, #f59e0b); }
+
+.code-output.run-expected-hit {
+  border-color: var(--accent-green, #10b981);
+}
+
+/* ---- global state chip -------------------------------------------------- */
+
+.run-chip {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 60;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 11px;
+  border: 1px solid var(--border-color, #2a2f3a);
+  border-radius: 999px;
+  background: var(--bg-secondary, #151a24);
+  color: var(--text-secondary, #9aa4b2);
+  font-family: var(--font-code, ui-monospace, monospace);
+  font-size: 0.7rem;
+  box-shadow: 0 10px 24px -18px rgba(0, 0, 0, 0.9);
+}
+
+.run-chip__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-orange, #f59e0b);
+}
+
+.run-chip[data-online="true"] .run-chip__dot { background: var(--accent-green, #10b981); }
+
+@media print {
+  .run-bar,
+  .run-out,
+  .run-chip { display: none !important; }
+}

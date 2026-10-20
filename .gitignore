@@ -7,3 +7,12 @@
 entities.json
 mempalace.yaml
 
+# Node tooling for tools/docs-checks
+node_modules/
+package-lock.json
+
+# Local-only switch that turns the snippet runner off
+public/docs/runner.disabled
+
+# Pages staging directory (created by the workflow, never committed)
+_site/
