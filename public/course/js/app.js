@@ -413,9 +413,11 @@
       runBtn.addEventListener('click', async () => {
         out.hidden = false;
         if (!state.online) {
-          out.replaceChildren(buildErrorReceipt(
-            `${state.note || 'the interpreter is not reachable'} — run the project locally (docker compose up -d) and open http://localhost/course/`,
-          ));
+          const note = state.note || 'the interpreter is not reachable';
+          const guidance = /docker|localhost/i.test(note)
+            ? note
+            : `${note} — run the project locally (docker compose up -d) and open http://localhost/course/`;
+          out.replaceChildren(buildErrorReceipt(guidance));
           return;
         }
         runBtn.disabled = true;
